@@ -1,0 +1,26 @@
+{
+  "3bc1639a-148d-42c3-9dc2-ba6d84547ba1": [
+    {
+      "id": "4edfc6f7-d78c-4adb-957f-af7682308834",
+      "user_id": "3bc1639a-148d-42c3-9dc2-ba6d84547ba1",
+      "task_id": "test-task-123",
+      "task_title": "Deploy Real-Time Road Inference Engine",
+      "duration_minutes": 50,
+      "mode": "pomo",
+      "started_at": "2026-09-24T18:02:13.645154+05:30",
+      "completed_at": "2026-09-24T18:52:13.645154+05:30",
+      "created_at": "2026-09-24T18:52:25.165110+05:30"
+    },
+    {
+      "id": "72a4f2c2-359b-4859-bd9b-936ebc2bbacf",
+      "user_id": "3bc1639a-148d-42c3-9dc2-ba6d84547ba1",
+      "task_id": "497abb78-99c4-4ec5-b451-c9b9456c33ca",
+      "task_title": "Automated Integration Test Task",
+      "duration_minutes": 25,
+      "mode": "pomo",
+      "started_at": "2026-09-24T13:34:01.199991+00:00",
+      "completed_at": "2026-09-24T13:59:01.199991+00:00",
+      "created_at": "2026-09-24T19:29:03.612415+05:30"
+    }
+  ]
+}
