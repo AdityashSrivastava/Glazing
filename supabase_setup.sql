@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.goals (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
-    category VARCHAR(50) NOT NULL, -- 'Coding', 'Fitness', 'Learning', 'Career', 'Life'
+    category VARCHAR(50) NOT NULL, -- 'DSA', 'Development', 'College Studies', 'Gym', 'Life'
     status VARCHAR(50) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'COMPLETED', 'ARCHIVED')),
     is_private BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),

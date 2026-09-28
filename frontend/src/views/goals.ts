@@ -58,10 +58,10 @@ export function renderGoals(): string {
               <div>
                 <label class="block text-xs font-semibold text-primary mb-1.5">Competency Domain</label>
                 <select id="goal-category" class="theme-input text-xs font-medium">
-                  <option value="Coding">Coding (Technical & Engineering)</option>
-                  <option value="Fitness">Fitness (Physical & Athletics)</option>
-                  <option value="Learning">Learning (Research & Academics)</option>
-                  <option value="Career">Career (Business & Networking)</option>
+                  <option value="DSA">DSA (Algorithms & Problem Solving)</option>
+                  <option value="Development">Development (Full-Stack & Systems)</option>
+                  <option value="College Studies">College Studies (Academics & Exams)</option>
+                  <option value="Gym">Gym (Fitness, Strength & Health)</option>
                   <option value="Life">Life (Discipline & Personal)</option>
                 </select>
               </div>
@@ -91,10 +91,10 @@ export function renderGoals(): string {
             <div class="flex flex-wrap items-center justify-between gap-3 pb-1 border-b border-border/60">
               <div class="flex flex-wrap items-center gap-1.5" id="category-filters">
                 <button class="cat-filter-btn px-3 py-1 rounded-full text-xs font-semibold bg-accent text-white transition-all" data-cat="all">All</button>
-                <button class="cat-filter-btn px-3 py-1 rounded-full text-xs font-medium text-muted hover:text-primary transition-all" data-cat="Coding">Coding</button>
-                <button class="cat-filter-btn px-3 py-1 rounded-full text-xs font-medium text-muted hover:text-primary transition-all" data-cat="Fitness">Fitness</button>
-                <button class="cat-filter-btn px-3 py-1 rounded-full text-xs font-medium text-muted hover:text-primary transition-all" data-cat="Learning">Learning</button>
-                <button class="cat-filter-btn px-3 py-1 rounded-full text-xs font-medium text-muted hover:text-primary transition-all" data-cat="Career">Career</button>
+                <button class="cat-filter-btn px-3 py-1 rounded-full text-xs font-medium text-muted hover:text-primary transition-all" data-cat="DSA">DSA</button>
+                <button class="cat-filter-btn px-3 py-1 rounded-full text-xs font-medium text-muted hover:text-primary transition-all" data-cat="Development">Development</button>
+                <button class="cat-filter-btn px-3 py-1 rounded-full text-xs font-medium text-muted hover:text-primary transition-all" data-cat="College Studies">College Studies</button>
+                <button class="cat-filter-btn px-3 py-1 rounded-full text-xs font-medium text-muted hover:text-primary transition-all" data-cat="Gym">Gym</button>
                 <button class="cat-filter-btn px-3 py-1 rounded-full text-xs font-medium text-muted hover:text-primary transition-all" data-cat="Life">Life</button>
                 <button class="cat-filter-btn px-3 py-1 rounded-full text-xs font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 transition-all border border-amber-500/20" data-cat="private">🔒 Classified</button>
               </div>
@@ -127,11 +127,15 @@ let selectedCategory = 'all';
 let showOnlyActive = true;
 
 const CATEGORY_STYLES: Record<string, { badge: string; bar: string }> = {
+  'DSA': { badge: 'border-indigo-500/30 text-indigo-400 bg-indigo-500/10', bar: '#6366f1' },
+  'Development': { badge: 'border-sky-500/30 text-sky-400 bg-sky-500/10', bar: '#38bdf8' },
+  'College Studies': { badge: 'border-amber-500/30 text-amber-400 bg-amber-500/10', bar: '#f59e0b' },
+  'Gym': { badge: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10', bar: '#10b981' },
+  'Life': { badge: 'border-rose-500/30 text-rose-400 bg-rose-500/10', bar: '#f43f5e' },
   'Coding': { badge: 'border-sky-500/30 text-sky-400 bg-sky-500/10', bar: '#38bdf8' },
   'Fitness': { badge: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10', bar: '#10b981' },
   'Learning': { badge: 'border-amber-500/30 text-amber-400 bg-amber-500/10', bar: '#f59e0b' },
   'Career': { badge: 'border-purple-500/30 text-purple-400 bg-purple-500/10', bar: '#818cf8' },
-  'Life': { badge: 'border-rose-500/30 text-rose-400 bg-rose-500/10', bar: '#f43f5e' },
 };
 
 export function setupGoalsLogic(navigateFn: (route: string) => void) {

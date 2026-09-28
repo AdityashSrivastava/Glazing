@@ -21,8 +21,15 @@ async def get_radar_data(current_user_id: str = Depends(get_current_user)):
     tasks = tasks_res.data or []
     
     # 3. Standard competency domains from schema
-    DOMAINS = ["Coding", "Fitness", "Learning", "Career", "Life"]
+    DOMAINS = ["DSA", "Development", "College Studies", "Gym", "Life"]
     domain_points = {d: 0 for d in DOMAINS}
+    
+    LEGACY_MAP = {
+        "Coding": "Development",
+        "Fitness": "Gym",
+        "Learning": "College Studies",
+        "Career": "Development",
+    }
     
     # Map goal_id -> category
     goal_category_map = {str(g["id"]): g.get("category", "Life") for g in goals}
@@ -33,6 +40,8 @@ async def get_radar_data(current_user_id: str = Depends(get_current_user)):
         pts = t.get("points_earned", 0) or 0
         if cat and cat in domain_points:
             domain_points[cat] += pts
+        elif cat and cat in LEGACY_MAP:
+            domain_points[LEGACY_MAP[cat]] += pts
         elif cat:
             domain_points["Life"] += pts
         else:

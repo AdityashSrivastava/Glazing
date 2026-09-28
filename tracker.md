@@ -71,10 +71,10 @@ Users can stake their own points to challenge others.
 ## 5. Analytics: Skill Radar Categories
 To map progress beyond just raw numbers, every Goal (and therefore its child Tasks) must be tagged with exactly one of these 5 categories. The profile page will render a Recharts Radar Chart based on lifetime points earned in each bucket.
 
-1.  **Development** (Coding, PRs, Architecture)
-2.  **Learning** (Reading, Courses, Tutorials)
-3.  **Fitness** (Gym, Running, Health)
-4.  **Career** (Networking, Resumes, Applications)
-5.  **Life** (Admin, Chores, Finances)
+1.  **DSA** (Algorithms, LeetCode, Problem Solving)
+2.  **Development** (Full-Stack, System Architecture, Projects)
+3.  **College Studies** (Courses, Academics, Exam Prep)
+4.  **Gym** (Fitness, Workouts, Physical Conditioning)
+5.  **Life** (Personal Habits, Routine, Discipline)
 
 *FastAPI endpoint `GET /api/users/{id}/radar` will group lifetime points by these 5 categories and return the JSON array formatted for Recharts.*

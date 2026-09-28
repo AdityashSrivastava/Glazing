@@ -127,18 +127,39 @@ async def get_goal_tasks(goal_id: UUID, current_user_id: str = Depends(get_curre
         .execute()
     return tasks_res.data or []
 
+VALID_CATEGORIES = ['DSA', 'Development', 'College Studies', 'Gym', 'Life']
+LEGACY_CATEGORIES = {
+    'Coding': 'Development',
+    'Fitness': 'Gym',
+    'Learning': 'College Studies',
+    'Career': 'Development',
+}
+
+def normalize_category(cat: str) -> str:
+    if not cat:
+        return 'Life'
+    cat = cat.strip()
+    if cat in VALID_CATEGORIES:
+        return cat
+    if cat in LEGACY_CATEGORIES:
+        return LEGACY_CATEGORIES[cat]
+    for vc in VALID_CATEGORIES:
+        if vc.lower() == cat.lower():
+            return vc
+    return cat
+
 @router.post("", response_model=GoalBase)
 async def create_goal(goal_in: GoalCreate, current_user_id: str = Depends(get_current_user)):
-    valid_categories = ['Coding', 'Fitness', 'Learning', 'Career', 'Life']
-    if goal_in.category not in valid_categories:
-        raise HTTPException(status_code=400, detail=f"Category must be one of {valid_categories}")
+    category = normalize_category(goal_in.category)
+    if category not in VALID_CATEGORIES:
+        raise HTTPException(status_code=400, detail=f"Category must be one of {VALID_CATEGORIES}")
 
     now_ist = datetime.now(IST).isoformat()
     packed_title = pack_goal_title(goal_in.title.strip(), goal_in.is_private)
     new_goal = {
         "user_id": current_user_id,
         "title": packed_title,
-        "category": goal_in.category,
+        "category": category,
         "status": "ACTIVE",
         "created_at": now_ist,
         "updated_at": now_ist
@@ -177,10 +198,10 @@ async def update_goal(goal_id: UUID, payload: GoalUpdate, current_user_id: str =
         updates["title"] = pack_goal_title(new_title, new_is_priv)
 
     if payload.category is not None:
-        valid_categories = ['Coding', 'Fitness', 'Learning', 'Career', 'Life']
-        if payload.category not in valid_categories:
-            raise HTTPException(status_code=400, detail=f"Category must be one of {valid_categories}")
-        updates["category"] = payload.category
+        cat = normalize_category(payload.category)
+        if cat not in VALID_CATEGORIES:
+            raise HTTPException(status_code=400, detail=f"Category must be one of {VALID_CATEGORIES}")
+        updates["category"] = cat
 
     if payload.status is not None:
         valid_statuses = ['ACTIVE', 'COMPLETED', 'ARCHIVED']

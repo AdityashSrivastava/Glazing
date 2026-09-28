@@ -119,12 +119,17 @@ export function setupAnalyticsLogic(navigateFn: (route: string) => void) {
   fetchAndRenderRadar();
 }
 
-const DOMAIN_CONFIG: Record<string, { color: string; bg: string; code: string }> = {
-  'CODING': { color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', code: 'COD' },
-  'FITNESS': { color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', code: 'FIT' },
-  'LEARNING': { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', code: 'LRN' },
-  'CAREER': { color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)', code: 'CAR' },
-  'LIFE': { color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', code: 'LIF' },
+const DOMAIN_CONFIG: Record<string, { name: string; color: string; bg: string; code: string }> = {
+  'DSA': { name: 'DSA', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.15)', code: 'DSA' },
+  'DEVELOPMENT': { name: 'Development', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', code: 'DEV' },
+  'COLLEGE STUDIES': { name: 'College Studies', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', code: 'COL' },
+  'GYM': { name: 'Gym', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', code: 'GYM' },
+  'LIFE': { name: 'Life', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', code: 'LIF' },
+  // Backward compatibility mappings
+  'CODING': { name: 'Development', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', code: 'DEV' },
+  'FITNESS': { name: 'Gym', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', code: 'GYM' },
+  'LEARNING': { name: 'College Studies', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', code: 'COL' },
+  'CAREER': { name: 'Development', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', code: 'DEV' },
 };
 
 function getTier(points: number): { label: string; badgeClass: string } {
@@ -164,10 +169,18 @@ async function fetchAndRenderRadar() {
     }
 
     // Standardize 5 default domains if missing
-    const standardDomains = ['CODING', 'FITNESS', 'LEARNING', 'CAREER', 'LIFE'];
+    const standardDomains = ['DSA', 'DEVELOPMENT', 'COLLEGE STUDIES', 'GYM', 'LIFE'];
     const domainMap = new Map<string, number>();
     standardDomains.forEach(d => domainMap.set(d, 0));
-    rawList.forEach(item => domainMap.set(item.domain, item.total_points));
+    rawList.forEach(item => {
+      let key = item.domain;
+      if (key === 'CODING') key = 'DEVELOPMENT';
+      else if (key === 'FITNESS') key = 'GYM';
+      else if (key === 'LEARNING') key = 'COLLEGE STUDIES';
+      else if (key === 'CAREER') key = 'DEVELOPMENT';
+      const cur = domainMap.get(key) || 0;
+      domainMap.set(key, cur + item.total_points);
+    });
 
     const labels = Array.from(domainMap.keys());
     const points = Array.from(domainMap.values());
@@ -181,7 +194,9 @@ async function fetchAndRenderRadar() {
     labels.forEach((label, idx) => {
       if (points[idx] > maxPoints && points[idx] > 0) {
         maxPoints = points[idx];
-        topDomain = `${label.charAt(0) + label.slice(1).toLowerCase()} (${points[idx]} pts)`;
+        const conf = DOMAIN_CONFIG[label];
+        const displayName = conf ? conf.name : label;
+        topDomain = `${displayName} (${points[idx]} pts)`;
       }
     });
     if (kpiTop) kpiTop.textContent = topDomain === 'None' ? 'Unranked' : topDomain;
@@ -202,7 +217,8 @@ async function fetchAndRenderRadar() {
       breakdownContainer.innerHTML = labels.map((label, idx) => {
         const pts = points[idx];
         const percent = totalPoints > 0 ? Math.round((pts / totalPoints) * 100) : 0;
-        const config = DOMAIN_CONFIG[label] || { color: '#635bff', bg: 'rgba(99,91,255,0.15)', code: label.slice(0, 3) };
+        const config = DOMAIN_CONFIG[label] || { name: label, color: '#635bff', bg: 'rgba(99,91,255,0.15)', code: label.slice(0, 3) };
+        const displayName = config.name || label;
         const tier = getTier(pts);
 
         return `
@@ -212,7 +228,7 @@ async function fetchAndRenderRadar() {
                 <span class="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-mono font-bold" style="background-color: ${config.bg}; color: ${config.color};">
                   ${config.code}
                 </span>
-                <span class="text-sm font-semibold text-primary tracking-tight">${label.charAt(0) + label.slice(1).toLowerCase()}</span>
+                <span class="text-sm font-semibold text-primary tracking-tight">${displayName}</span>
                 <span class="px-2 py-0.5 rounded text-[9px] font-mono border ${tier.badgeClass}">
                   ${tier.label}
                 </span>
@@ -261,7 +277,7 @@ async function fetchAndRenderRadar() {
     new Chart(canvas, {
       type: 'radar',
       data: {
-        labels: labels.map(l => l.charAt(0) + l.slice(1).toLowerCase()),
+        labels: labels.map(l => DOMAIN_CONFIG[l]?.name || l),
         datasets: [{
           label: 'Domain Points',
           data: displayData,

@@ -21,7 +21,7 @@ Unlike traditional productivity tools, Glazing is built on the concept of a cont
 The system differentiates between Macro (Goals) and Micro (Tasks) achievements.
 *   **Long-Term Goals:**
     *   Users can define overarching goals (e.g., "Master FastAPI," "Complete 100 LeetCode Problems").
-    *   Goals must have a Title, Category (e.g., Coding, Fitness, Career), and a Status (Active, Completed).
+    *   Goals must have a Title, Category (e.g., DSA, Development, College Studies, Gym, Life), and a Status (Active, Completed).
     *   Goals act as "folders" or tags for daily tasks.
 *   **Daily Tasks:**
     *   Users create tasks they intend to complete *today*.

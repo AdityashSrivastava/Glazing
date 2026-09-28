@@ -282,8 +282,15 @@ async def get_user_radar(user_id: str, current_user_id: str = Depends(get_curren
         .execute()
     tasks = tasks_res.data or []
 
-    DOMAINS = ["Coding", "Fitness", "Learning", "Career", "Life"]
+    DOMAINS = ["DSA", "Development", "College Studies", "Gym", "Life"]
     domain_points = {d: 0 for d in DOMAINS}
+
+    LEGACY_MAP = {
+        "Coding": "Development",
+        "Fitness": "Gym",
+        "Learning": "College Studies",
+        "Career": "Development",
+    }
 
     for t in tasks:
         gid = str(t.get("goal_id")) if t.get("goal_id") else None
@@ -291,6 +298,8 @@ async def get_user_radar(user_id: str, current_user_id: str = Depends(get_curren
         pts = t.get("points_earned", 0) or 0
         if cat and cat in domain_points:
             domain_points[cat] += pts
+        elif cat and cat in LEGACY_MAP:
+            domain_points[LEGACY_MAP[cat]] += pts
         else:
             domain_points["Life"] += pts
 
