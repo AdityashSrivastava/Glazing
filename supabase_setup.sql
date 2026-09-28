@@ -84,8 +84,16 @@ CREATE TABLE IF NOT EXISTS public.focus_sessions (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 8. PERFORMANCE INDEXES
+-- 8. SCHEMA RECONCILIATION & MIGRATIONS
+-- Ensures columns exist even if tables were already initialized earlier
+ALTER TABLE public.goals ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS proof_url TEXT;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS goal_id UUID REFERENCES public.goals(id) ON DELETE SET NULL;
+
+-- 9. PERFORMANCE INDEXES
 CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON public.tasks(created_at DESC);
+
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON public.tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_user_date ON public.tasks(user_id, completed_at);
 CREATE INDEX IF NOT EXISTS idx_tasks_goal_id ON public.tasks(goal_id);
@@ -94,7 +102,7 @@ CREATE INDEX IF NOT EXISTS idx_bounties_target ON public.bounties(target_task_id
 CREATE INDEX IF NOT EXISTS idx_focus_sessions_user ON public.focus_sessions(user_id, completed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_focus_sessions_task ON public.focus_sessions(task_id);
 
--- 9. AUTO-UPDATE TIMESTAMPS TRIGGER FUNCTION
+-- 10. AUTO-UPDATE TIMESTAMPS TRIGGER FUNCTION
 CREATE OR REPLACE FUNCTION update_modified_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -112,7 +120,7 @@ CREATE TRIGGER update_goals_modtime BEFORE UPDATE ON public.goals FOR EACH ROW E
 DROP TRIGGER IF EXISTS update_tasks_modtime ON public.tasks;
 CREATE TRIGGER update_tasks_modtime BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
 
--- 9. AUTH TRIGGER: AUTO-CREATE PUBLIC.USERS PROFILE ON AUTH SIGNUP
+-- 11. AUTH TRIGGER: AUTO-CREATE PUBLIC.USERS PROFILE ON AUTH SIGNUP
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -133,8 +141,9 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
--- 10. ROW LEVEL SECURITY (RLS) POLICIES
+-- 12. ROW LEVEL SECURITY (RLS) POLICIES
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bounties ENABLE ROW LEVEL SECURITY;
@@ -204,7 +213,7 @@ CREATE POLICY "Users can insert own focus sessions" ON public.focus_sessions FOR
 DROP POLICY IF EXISTS "Users can delete own focus sessions" ON public.focus_sessions;
 CREATE POLICY "Users can delete own focus sessions" ON public.focus_sessions FOR DELETE USING (auth.uid() = user_id);
 
--- 11. STORAGE BUCKET FOR PROOFS
+-- 13. STORAGE BUCKET FOR PROOFS
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('proof_uploads', 'proof_uploads', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
