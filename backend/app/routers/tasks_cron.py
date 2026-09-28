@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone, timedelta
+from app.auth import verify_cron_secret_or_user
 from app.database import db
 
 router = APIRouter(prefix="/api/tasks/cron", tags=["Cron"])
@@ -7,7 +8,7 @@ router = APIRouter(prefix="/api/tasks/cron", tags=["Cron"])
 IST = timezone(timedelta(hours=5, minutes=30))
 
 @router.post("/resolve-abandoned")
-async def resolve_abandoned_tasks():
+async def resolve_abandoned_tasks(caller: str = Depends(verify_cron_secret_or_user)):
     # 1. Calculate the cutoff date (exactly 7 days ago)
     cutoff_date = (datetime.now(IST) - timedelta(days=7)).isoformat()
     

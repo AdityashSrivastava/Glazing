@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
-from app.auth import get_current_user
+from app.auth import get_current_user, verify_cron_secret_or_user
 from app.database import db
 from app.models import UserBase
 
@@ -224,7 +224,7 @@ async def get_leaderboard(
     }
 
 @router.post("/snapshots/generate")
-async def generate_daily_snapshots(current_user_id: str = Depends(get_current_user)):
+async def generate_daily_snapshots(caller: str = Depends(verify_cron_secret_or_user)):
     """
     Administrative endpoint to generate daily snapshots.
     Triggered by a cron job at 11:59 PM IST.
@@ -307,10 +307,11 @@ async def get_user_radar(user_id: str, current_user_id: str = Depends(get_curren
 
 class SetPasswordRequest(BaseModel):
     email: str
-    password: str
+    password: str = Field(..., min_length=6, max_length=128)
+    current_password: Optional[str] = Field(None, max_length=128)
 
 class UpdatePasswordRequest(BaseModel):
-    password: str
+    password: str = Field(..., min_length=6, max_length=128)
 
 ALLOWED_OPERATIVE_EMAILS = {
     "adityash@glazing.com",
@@ -339,7 +340,7 @@ async def set_operative_password(req: SetPasswordRequest):
         users = db.auth.admin.list_users()
         user = next((u for u in users if u.email and u.email.lower() == clean_email), None)
         if not user:
-            # Create user if somehow missing in auth
+            # First-time provisioning: create user if missing in auth
             disp_name = clean_email.split("@")[0].capitalize()
             created = db.auth.admin.create_user({
                 "email": clean_email,
@@ -352,14 +353,34 @@ async def set_operative_password(req: SetPasswordRequest):
                 "total_lifetime_points": 0
             }).execute()
         else:
+            # Existing operative account: must provide current password to prevent unauthorized takeover
+            if not req.current_password:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Current password is required to update an existing operative's password."
+                )
+            try:
+                sign_in_test = db.auth.sign_in_with_password({
+                    "email": clean_email,
+                    "password": req.current_password
+                })
+                if not sign_in_test or not sign_in_test.user:
+                    raise Exception("Invalid credentials")
+            except Exception:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Current password verification failed. Unauthorized to update password."
+                )
             db.auth.admin.update_user_by_id(user.id, {"password": req.password})
             
         return {
             "status": "success",
             "message": f"Password successfully updated in Supabase for {clean_email}."
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update password: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update password. Telemetry logged.")
 
 @router.post("/me/password")
 async def update_my_password(
@@ -373,5 +394,6 @@ async def update_my_password(
         db.auth.admin.update_user_by_id(current_user_id, {"password": req.password})
         return {"status": "success", "message": "Password updated successfully."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update password: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update password. Telemetry logged.")
+
 

@@ -29,43 +29,59 @@ Execute these SQL commands in Supabase to secure the tables:
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bounties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.focus_sessions ENABLE ROW LEVEL SECURITY;
 
 -- ==========================================
 -- USERS TABLE POLICIES
 -- ==========================================
--- Everyone can view all users (needed for leaderboards)
 CREATE POLICY "Allow read access to all users" ON public.users FOR SELECT USING (true);
--- Users can only update their own profile (e.g., avatar)
 CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (auth.uid() = id);
 
 -- ==========================================
--- GOALS TABLE POLICIES
+-- GOALS TABLE POLICIES (Defense-in-depth)
 -- ==========================================
--- Everyone can view all goals (to see what peers are working towards)
-CREATE POLICY "Allow read access to all goals" ON public.goals FOR SELECT USING (true);
--- Users can only create/edit/delete their own goals
+CREATE POLICY "Allow read access to non-private goals or own goals" ON public.goals 
+    FOR SELECT USING (is_private = false OR auth.uid() = user_id);
 CREATE POLICY "Users can insert own goals" ON public.goals FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own goals" ON public.goals FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own goals" ON public.goals FOR DELETE USING (auth.uid() = user_id);
 
 -- ==========================================
--- TASKS TABLE POLICIES (Read carefully)
+-- TASKS TABLE POLICIES (Defense-in-depth)
 -- ==========================================
--- WHY READ ALL? We allow reading ALL tasks at the DB level so aggregate functions (leaderboard points) 
--- can calculate properly. The actual text masking of Private tasks happens in the FastAPI API layer.
-CREATE POLICY "Allow read access to all tasks" ON public.tasks FOR SELECT USING (true);
-
--- Users can only mutate their own tasks
+CREATE POLICY "Allow read access to non-private tasks or own tasks" ON public.tasks 
+    FOR SELECT USING (is_private = false OR auth.uid() = user_id);
 CREATE POLICY "Users can insert own tasks" ON public.tasks FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own tasks" ON public.tasks FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own tasks" ON public.tasks FOR DELETE USING (auth.uid() = user_id);
+
+-- ==========================================
+-- BOUNTIES POLICIES
+-- ==========================================
+CREATE POLICY "Allow read access to all bounties" ON public.bounties FOR SELECT USING (true);
+CREATE POLICY "Users can insert bounties" ON public.bounties FOR INSERT WITH CHECK (auth.uid() = issuer_id);
+CREATE POLICY "Users can delete own bounties" ON public.bounties FOR DELETE USING (auth.uid() = issuer_id);
+
+-- ==========================================
+-- DAILY SNAPSHOTS POLICIES
+-- ==========================================
+CREATE POLICY "Allow read access to all snapshots" ON public.daily_snapshots FOR SELECT USING (true);
+
+-- ==========================================
+-- FOCUS SESSIONS POLICIES
+-- ==========================================
+CREATE POLICY "Users can read own focus sessions" ON public.focus_sessions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own focus sessions" ON public.focus_sessions FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete own focus sessions" ON public.focus_sessions FOR DELETE USING (auth.uid() = user_id);
 ```
 
 ---
 
 ## 3. The "Private Task" Data Masking Logic (API Level - CRITICAL)
-Because RLS allows reading all tasks (to calculate points), the **FastAPI backend is strictly responsible for masking sensitive data** before sending JSON to the Next.js client.
+In addition to database-level Row Level Security preventing direct client leaks via the anon key, the **FastAPI backend connects using the authoritative Service Role Key and enforces strict in-memory masking of sensitive fields** before returning JSON responses to clients.
+
 
 **Implementation Rule for the AI Agent:**
 Whenever a route returns a Task or a List of Tasks (e.g., `GET /api/tasks/feed`), it must pass through a sanitization function or a dynamic Pydantic serializer.

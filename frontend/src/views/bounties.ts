@@ -274,7 +274,7 @@ async function populateEligibleTasks() {
       tasks.map((t: any) => {
         const est = t.estimated_hours ? `${t.estimated_hours}h` : 'N/A';
         const bountiesLabel = t.active_bounties_count > 0 ? ` [${t.active_bounties_count} active / ${t.total_bounty_points} pts staked]` : '';
-        return `<option value="${t.id}">[${t.user_name}] "${t.title}" (Est: ${est})${bountiesLabel}</option>`;
+        return `<option value="${escapeHtml(t.id)}">[${escapeHtml(t.user_name)}] "${escapeHtml(t.title)}" (Est: ${est})${bountiesLabel}</option>`;
       }).join('');
 
     if (hint) {
@@ -475,7 +475,7 @@ async function fetchAndRenderBounties(container: HTMLDivElement) {
   } catch (e: any) {
     container.innerHTML = `
       <div class="theme-card border-rose-500/30 bg-rose-500/5 text-rose-500 text-xs data-text p-4">
-        Error loading bounty contracts: ${e.message}
+        Error loading bounty contracts: ${escapeHtml(e.message)}
       </div>
     `;
   }

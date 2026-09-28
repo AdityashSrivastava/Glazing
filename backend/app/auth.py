@@ -71,3 +71,32 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+from fastapi import Header
+
+CRON_SECRET = os.getenv("CRON_SECRET", "")
+
+async def verify_cron_secret_or_user(
+    authorization: str | None = Header(None),
+    x_cron_secret: str | None = Header(None, alias="X-Cron-Secret")
+) -> str:
+    # 1. Check if valid CRON_SECRET is provided via header
+    if CRON_SECRET and x_cron_secret and x_cron_secret.strip() == CRON_SECRET.strip():
+        return "system_cron"
+    
+    # 2. Check Authorization header
+    if authorization:
+        token = authorization
+        if authorization.startswith("Bearer "):
+            token = authorization[7:].strip()
+        if CRON_SECRET and token.strip() == CRON_SECRET.strip():
+            return "system_cron"
+        # Validate as standard user JWT
+        return await get_current_user(token)
+        
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Unauthorized. Valid session token or X-Cron-Secret header required.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+

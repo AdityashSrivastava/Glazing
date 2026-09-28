@@ -454,7 +454,7 @@ function attachCardEventListeners(container: HTMLDivElement, navigateFn: (route:
           }).join('');
 
         } catch (err: any) {
-          drawer.innerHTML = `<div class="text-[11px] text-rose-500 font-mono text-center">Failed to load tasks: ${err.message}</div>`;
+          drawer.innerHTML = `<div class="text-[11px] text-rose-500 font-mono text-center">Failed to load tasks: ${escapeHtml(err.message)}</div>`;
         }
 
       } else {

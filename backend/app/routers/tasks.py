@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
@@ -34,7 +34,20 @@ class TaskCreate(BaseModel):
 
 class TaskComplete(BaseModel):
     actual_hours: float = Field(..., gt=0, le=12)
-    proof_url: Optional[str] = None
+    proof_url: Optional[str] = Field(None, max_length=1000)
+
+    @field_validator("proof_url")
+    @classmethod
+    def validate_proof_url(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return None
+        cleaned = v.strip()
+        if not cleaned:
+            return None
+        if not (cleaned.startswith("http://") or cleaned.startswith("https://")):
+            raise ValueError("Proof URL must be a valid HTTP or HTTPS web address.")
+        return cleaned
+
 
 class TaskFeedStats(BaseModel):
     active_in_progress_count: int

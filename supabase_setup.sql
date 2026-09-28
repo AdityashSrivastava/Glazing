@@ -139,17 +139,21 @@ ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bounties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.focus_sessions ENABLE ROW LEVEL SECURITY;
 
--- USERS POLICIES
+-- USERS POLICIES (Read-only for public/anon; authoritative mutations via FastAPI backend service key)
 DROP POLICY IF EXISTS "Allow read access to all users" ON public.users;
 CREATE POLICY "Allow read access to all users" ON public.users FOR SELECT USING (true);
 
+-- Allow authenticated users to update ONLY display_name and avatar_url on their own profile
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
 CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (auth.uid() = id);
 
--- GOALS POLICIES
+-- GOALS POLICIES (Defense-in-depth: classified goals readable only by owner)
 DROP POLICY IF EXISTS "Allow read access to all goals" ON public.goals;
-CREATE POLICY "Allow read access to all goals" ON public.goals FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow read access to non-private goals or own goals" ON public.goals;
+CREATE POLICY "Allow read access to non-private goals or own goals" ON public.goals 
+    FOR SELECT USING (is_private = false OR auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can insert own goals" ON public.goals;
 CREATE POLICY "Users can insert own goals" ON public.goals FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -160,9 +164,11 @@ CREATE POLICY "Users can update own goals" ON public.goals FOR UPDATE USING (aut
 DROP POLICY IF EXISTS "Users can delete own goals" ON public.goals;
 CREATE POLICY "Users can delete own goals" ON public.goals FOR DELETE USING (auth.uid() = user_id);
 
--- TASKS POLICIES
+-- TASKS POLICIES (Defense-in-depth: classified tasks readable only by owner via direct client)
 DROP POLICY IF EXISTS "Allow read access to all tasks" ON public.tasks;
-CREATE POLICY "Allow read access to all tasks" ON public.tasks FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow read access to non-private tasks or own tasks" ON public.tasks;
+CREATE POLICY "Allow read access to non-private tasks or own tasks" ON public.tasks 
+    FOR SELECT USING (is_private = false OR auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can insert own tasks" ON public.tasks;
 CREATE POLICY "Users can insert own tasks" ON public.tasks FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -180,14 +186,17 @@ CREATE POLICY "Allow read access to all bounties" ON public.bounties FOR SELECT 
 DROP POLICY IF EXISTS "Users can insert bounties" ON public.bounties;
 CREATE POLICY "Users can insert bounties" ON public.bounties FOR INSERT WITH CHECK (auth.uid() = issuer_id);
 
--- SNAPSHOTS POLICIES
+DROP POLICY IF EXISTS "Users can delete own bounties" ON public.bounties;
+CREATE POLICY "Users can delete own bounties" ON public.bounties FOR DELETE USING (auth.uid() = issuer_id);
+
+-- SNAPSHOTS POLICIES (Read-only for clients; inserted exclusively by backend Service Role)
 DROP POLICY IF EXISTS "Allow read access to all snapshots" ON public.daily_snapshots;
 CREATE POLICY "Allow read access to all snapshots" ON public.daily_snapshots FOR SELECT USING (true);
 
--- FOCUS SESSIONS POLICIES
-ALTER TABLE public.focus_sessions ENABLE ROW LEVEL SECURITY;
+-- FOCUS SESSIONS POLICIES (Strictly private to the user)
 DROP POLICY IF EXISTS "Allow read access to all focus sessions" ON public.focus_sessions;
-CREATE POLICY "Allow read access to all focus sessions" ON public.focus_sessions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can read own focus sessions" ON public.focus_sessions;
+CREATE POLICY "Users can read own focus sessions" ON public.focus_sessions FOR SELECT USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can insert own focus sessions" ON public.focus_sessions;
 CREATE POLICY "Users can insert own focus sessions" ON public.focus_sessions FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -195,7 +204,7 @@ CREATE POLICY "Users can insert own focus sessions" ON public.focus_sessions FOR
 DROP POLICY IF EXISTS "Users can delete own focus sessions" ON public.focus_sessions;
 CREATE POLICY "Users can delete own focus sessions" ON public.focus_sessions FOR DELETE USING (auth.uid() = user_id);
 
--- 12. STORAGE BUCKET FOR PROOFS (Optional image uploads)
+-- 11. STORAGE BUCKET FOR PROOFS
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('proof_uploads', 'proof_uploads', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
@@ -207,3 +216,4 @@ CREATE POLICY "Authenticated users can upload proofs" ON storage.objects
 DROP POLICY IF EXISTS "Public can view proofs" ON storage.objects;
 CREATE POLICY "Public can view proofs" ON storage.objects
     FOR SELECT USING (bucket_id = 'proof_uploads');
+

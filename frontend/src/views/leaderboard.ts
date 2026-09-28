@@ -292,8 +292,8 @@ async function fetchAndRenderLeaderboard() {
         myText.innerHTML = `👑 <strong>Dominating the matrix!</strong> You are in 1st place with <strong>${meta.my_points} pts</strong>. Hold the lead until midnight freeze!`;
       } else {
         const leader = operatives[0];
-        const gap = leader.points - (meta.my_points || 0);
-        myText.innerHTML = `You are currently in <strong>#${meta.my_rank} place</strong> (${meta.my_points} pts). You are <strong>${gap} points behind</strong> #1 ${leader.display_name}.`;
+        const gap = (leader?.points || 0) - (meta.my_points || 0);
+        myText.innerHTML = `You are currently in <strong>#${meta.my_rank} place</strong> (${meta.my_points} pts). You are <strong>${gap} points behind</strong> #1 ${escapeHtml(leader?.display_name || 'Operative')}.`;
       }
     }
 

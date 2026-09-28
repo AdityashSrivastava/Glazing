@@ -1,6 +1,7 @@
 import { supabase } from '../../supabase';
 import { apiFetch, updateMyPassword } from '../../api';
 import { renderCreateTaskModal } from './modal';
+import { escapeHtml } from '../../utils';
 
 export function renderChangePasswordModal(): string {
   return `
@@ -182,7 +183,9 @@ export function showNotification(message: string, type: 'success' | 'error' = 's
   const toast = document.createElement('div');
   const bg = type === 'success' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-rose-600 text-white border-rose-500';
   toast.className = `p-3 px-4 rounded-xl shadow-xl font-mono text-xs flex items-center gap-2 transform translate-y-3 opacity-0 transition-all duration-300 pointer-events-auto border ${bg}`;
-  toast.innerHTML = `<span>${message}</span>`;
+  const span = document.createElement('span');
+  span.textContent = message;
+  toast.appendChild(span);
   toastContainer.appendChild(toast);
 
   requestAnimationFrame(() => {
@@ -303,7 +306,7 @@ export function setupNavbarLogic(navigateFn: (route: string) => void) {
         select.innerHTML = '<option value="">-- NO LINKED OBJECTIVE --</option>' + 
           goals.map((g: any) => {
             const privBadge = g.is_private ? '[🔒 Classified] ' : '';
-            return `<option value="${g.id}">🎯 ${privBadge}${g.title}</option>`;
+            return `<option value="${escapeHtml(g.id)}">🎯 ${privBadge}${escapeHtml(g.title)}</option>`;
           }).join('');
       } catch (e) {
         console.error("Failed to load goals into task modal:", e);

@@ -26,3 +26,16 @@ export function formatMinutes(mins: number): string {
   if (h > 0) return `${h}h`;
   return `${m}m`;
 }
+
+/**
+ * Sanitizes URLs to prevent javascript: or data: URI-based XSS exploits in href attributes.
+ */
+export function safeUrl(url: string | null | undefined): string {
+  if (!url) return '#';
+  const clean = String(url).trim();
+  if (/^https?:\/\//i.test(clean)) {
+    return clean;
+  }
+  return '#';
+}
+

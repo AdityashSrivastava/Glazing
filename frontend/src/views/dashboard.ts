@@ -2,7 +2,7 @@ import { supabase } from '../supabase';
 import { apiFetch } from '../api';
 import { renderCompleteModal, openCompleteTaskModal, setupCompleteModalLogic } from './components/complete_modal';
 import { renderNavbar, setupNavbarLogic } from './components/navbar';
-import { escapeHtml } from '../utils';
+import { escapeHtml, safeUrl } from '../utils';
 
 interface Task {
   id: string;
@@ -477,7 +477,7 @@ async function initDashboard() {
       const goalSelect = document.getElementById('filter-goal-select') as HTMLSelectElement;
       if (goalSelect) {
         goalSelect.innerHTML = '<option value="ALL">All Linked Goals</option>' + 
-          allGoals.map(g => `<option value="${g.id}">🎯 ${g.title}</option>`).join('');
+          allGoals.map(g => `<option value="${escapeHtml(g.id)}">🎯 ${escapeHtml(g.title)}</option>`).join('');
       }
     } catch {}
 
@@ -486,7 +486,7 @@ async function initDashboard() {
     if (feedContainer) {
       feedContainer.innerHTML = `
         <div class="theme-card border-rose-500/30 bg-rose-500/5 text-center py-8">
-           <span class="font-mono text-xs text-rose-500">Failed to initialize telemetry: ${err.message}</span>
+           <span class="font-mono text-xs text-rose-500">Failed to initialize telemetry: ${escapeHtml(err.message)}</span>
         </div>
       `;
     }
@@ -513,7 +513,7 @@ async function loadFeedAndStats(container: HTMLDivElement) {
   } catch (err: any) {
     container.innerHTML = `
       <div class="theme-card border-rose-500/30 bg-rose-500/5 text-center py-8">
-         <span class="font-mono text-xs text-rose-500">Telemetry uplink error: ${err.message}</span>
+         <span class="font-mono text-xs text-rose-500">Telemetry uplink error: ${escapeHtml(err.message)}</span>
       </div>
     `;
   }
@@ -748,7 +748,7 @@ function renderFilteredTasks(container: HTMLDivElement) {
           ${isCompleted && task.proof_url && !isClassified ? `
             <div class="mt-2.5 flex items-center gap-1.5 text-xs">
               <span class="text-muted text-[10px] font-mono uppercase tracking-wider">Proof of Work:</span>
-              <a href="${escapeHtml(task.proof_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] font-mono text-accent hover:underline bg-accent/10 px-2 py-0.5 rounded border border-accent/20 truncate max-w-[320px]">
+              <a href="${escapeHtml(safeUrl(task.proof_url))}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] font-mono text-accent hover:underline bg-accent/10 px-2 py-0.5 rounded border border-accent/20 truncate max-w-[320px]">
                 <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                 <span class="truncate">${escapeHtml(task.proof_url)}</span>
               </a>

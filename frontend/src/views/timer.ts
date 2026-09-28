@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { apiFetch } from '../api';
+import { escapeHtml } from '../utils';
 import { renderNavbar, setupNavbarLogic, showNotification } from './components/navbar';
 import { renderCompleteModal, openCompleteTaskModal, setupCompleteModalLogic } from './components/complete_modal';
 
@@ -789,10 +790,10 @@ function renderTaskSelectorList() {
       <div class="flex items-center gap-2.5">
         <span class="w-2 h-2 rounded-full bg-accent group-hover:scale-125 transition-transform"></span>
         <div>
-          <h4 class="text-xs font-bold text-primary group-hover:text-accent transition-colors">${t.title}</h4>
+          <h4 class="text-xs font-bold text-primary group-hover:text-accent transition-colors">${escapeHtml(t.title)}</h4>
           <div class="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-muted">
             <span>Target: ${t.estimated_hours}h</span>
-            ${t.goal_title ? `<span class="text-accent">• 🎯 ${t.goal_title}</span>` : ''}
+            ${t.goal_title ? `<span class="text-accent">• 🎯 ${escapeHtml(t.goal_title)}</span>` : ''}
           </div>
         </div>
       </div>
@@ -897,8 +898,8 @@ function renderFocusRecordTimeline(records: FocusRecord[]) {
               <div class="flex items-center justify-between text-xs">
                 <div>
                   <div class="font-mono text-[11px] text-primary font-medium">${timeRange}</div>
-                  <div class="text-muted text-[11px] font-semibold mt-0.5 max-w-[200px] truncate" title="${item.task_title}">
-                    ${item.task_title}
+                  <div class="text-muted text-[11px] font-semibold mt-0.5 max-w-[200px] truncate" title="${escapeHtml(item.task_title)}">
+                    ${escapeHtml(item.task_title)}
                   </div>
                 </div>
 
