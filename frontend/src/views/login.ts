@@ -84,6 +84,35 @@ export function renderLogin(): string {
             />
           </div>
 
+          <!-- Current Password (Shown only in Set Password mode) -->
+          <div id="current-pwd-container" class="hidden">
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-[13px] font-semibold text-primary">Current Password</label>
+              <span class="text-[11px] text-muted font-mono">Default: password123</span>
+            </div>
+            <div class="relative">
+              <input
+                type="password"
+                id="current-password-input"
+                class="theme-input font-sans text-[14px] h-10 pl-3 pr-10 text-primary w-full"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                id="toggle-current-password-btn"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-primary p-1 focus:outline-none transition-colors"
+                title="Show / Hide Password"
+                aria-label="Toggle password visibility"
+              >
+                <svg id="current-eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
+            </div>
+            <p class="text-[11px] text-muted mt-1">Required to verify existing operative identity.</p>
+          </div>
+
           <!-- Password Field with View Toggle -->
           <div>
             <div class="flex justify-between items-center mb-1">
@@ -179,6 +208,8 @@ export function setupLoginLogic(navigateFn: (route: string) => void) {
 
   const form = document.getElementById('login-form') as HTMLFormElement;
   const emailInput = document.getElementById('email-input') as HTMLInputElement;
+  const currentPasswordInput = document.getElementById('current-password-input') as HTMLInputElement;
+  const currentContainer = document.getElementById('current-pwd-container') as HTMLDivElement;
   const passwordInput = document.getElementById('password-input') as HTMLInputElement;
   const confirmPasswordInput = document.getElementById('confirm-password-input') as HTMLInputElement;
   const confirmContainer = document.getElementById('confirm-pwd-container') as HTMLDivElement;
@@ -195,6 +226,9 @@ export function setupLoginLogic(navigateFn: (route: string) => void) {
   const titleEl = document.getElementById('login-title') as HTMLElement;
   const subtitleEl = document.getElementById('login-subtitle') as HTMLElement;
   const pwdLabel = document.getElementById('pwd-label') as HTMLElement;
+
+  const toggleCurrentPasswordBtn = document.getElementById('toggle-current-password-btn') as HTMLButtonElement;
+  const currentEyeIcon = document.getElementById('current-eye-icon') as unknown as SVGElement;
 
   const togglePasswordBtn = document.getElementById('toggle-password-btn') as HTMLButtonElement;
   const eyeIcon = document.getElementById('eye-icon') as unknown as SVGElement;
@@ -214,6 +248,7 @@ export function setupLoginLogic(navigateFn: (route: string) => void) {
     });
   }
 
+  setupEyeToggle(toggleCurrentPasswordBtn, currentPasswordInput, currentEyeIcon);
   setupEyeToggle(togglePasswordBtn, passwordInput, eyeIcon);
   setupEyeToggle(toggleConfirmPasswordBtn, confirmPasswordInput, confirmEyeIcon);
 
@@ -229,20 +264,23 @@ export function setupLoginLogic(navigateFn: (route: string) => void) {
       titleEl.textContent = 'Set Operative Password';
       subtitleEl.textContent = 'Configure your personal password for secure terminal access.';
       pwdLabel.textContent = 'New Password';
+      currentContainer.classList.remove('hidden');
       confirmContainer.classList.remove('hidden');
       confirmPasswordInput.required = true;
       submitBtn.textContent = 'Lock In Password & Enter';
-      switchModeLink.textContent = 'Already set your password? Sign in here \u2192';
+      switchModeLink.textContent = 'Already set your password? Sign in here →';
     } else {
       tabSignin.className = 'py-2 rounded-lg bg-white dark:bg-zinc-800 text-primary font-semibold shadow-sm transition-all';
       tabSetpwd.className = 'py-2 rounded-lg text-body hover:text-primary transition-all';
       titleEl.textContent = 'Sign in to terminal';
       subtitleEl.textContent = 'Select your operative profile or enter credentials to proceed.';
       pwdLabel.textContent = 'Password';
+      currentContainer.classList.add('hidden');
       confirmContainer.classList.add('hidden');
       confirmPasswordInput.required = false;
+      if (currentPasswordInput) currentPasswordInput.value = '';
       submitBtn.textContent = 'Sign in';
-      switchModeLink.textContent = 'First time here? Set your operative password \u2192';
+      switchModeLink.textContent = 'First time here? Set your operative password →';
     }
   }
 
@@ -320,8 +358,9 @@ export function setupLoginLogic(navigateFn: (route: string) => void) {
       submitBtn.textContent = 'Saving to database...';
 
       try {
+        const currentPassword = currentPasswordInput ? currentPasswordInput.value.trim() : '';
         // 1. Authoritatively update/create password in Supabase via backend API
-        await setOperativePassword(email, password);
+        await setOperativePassword(email, password, currentPassword || undefined);
         
         successDiv.textContent = 'Password saved! Authenticating terminal...';
         successDiv.classList.remove('hidden');

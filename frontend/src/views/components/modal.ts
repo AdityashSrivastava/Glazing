@@ -22,14 +22,15 @@ export function renderCreateTaskModal(): string {
           <div>
             <label class="block text-[11px] font-semibold uppercase mb-1.5 text-muted tracking-wider">Estimated Hours</label>
             <input type="number" id="task-est" required min="0.1" max="12" step="0.1" class="theme-input font-mono" placeholder="2.5" />
-            <p class="text-[10px] text-muted mt-1">Hint: Deliver within ±0.25h of this target to claim the +5 pts Sniper Precision Bonus.</p>
+            <p class="text-[10px] text-muted mt-1">Estimated duration for squad scheduling and active execution.</p>
           </div>
 
           <div>
-            <label class="block text-[11px] font-semibold uppercase mb-1.5 text-muted tracking-wider">Link Squad Goal (Optional)</label>
+            <label class="block text-[11px] font-semibold uppercase mb-1.5 text-muted tracking-wider">Link Squad Objective (Sets Domain Rate)</label>
             <select id="task-goal-id" class="theme-input font-medium">
-              <option value="">-- NO LINKED OBJECTIVE --</option>
+              <option value="">-- NO LINKED OBJECTIVE (Base: 5 pts/hr) --</option>
             </select>
+            <p class="text-[10px] text-muted mt-1">Domain Rates: DSA (15 pts/h) • Development (12.5 pts/h) • College Work (10 pts/h) • Base (5 pts/h)</p>
           </div>
 
           <div class="flex items-center space-x-3 pt-2">

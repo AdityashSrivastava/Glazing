@@ -31,11 +31,15 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   return response.json();
 }
 
-export async function setOperativePassword(email: string, password: string) {
+export async function setOperativePassword(email: string, password: string, currentPassword?: string) {
   const response = await fetch(`${API_BASE_URL}/users/set-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ 
+      email, 
+      password,
+      current_password: currentPassword ? currentPassword : undefined
+    })
   });
 
   if (!response.ok) {
@@ -50,6 +54,32 @@ export async function updateMyPassword(password: string) {
   return apiFetch('/users/me/password', {
     method: 'POST',
     body: JSON.stringify({ password })
+  });
+}
+
+export async function uploadProofFile(file: File): Promise<{ url: string; filename: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return apiFetch('/tasks/upload-proof', {
+    method: 'POST',
+    body: formData
+  });
+}
+
+export interface GymStatus {
+  checked_today: boolean;
+  checked_at?: string | null;
+  streak_days: number;
+  points_awarded: number;
+}
+
+export async function getGymStatus(): Promise<GymStatus> {
+  return apiFetch('/gym/status');
+}
+
+export async function checkinGym(): Promise<GymStatus> {
+  return apiFetch('/gym/checkin', {
+    method: 'POST'
   });
 }
 

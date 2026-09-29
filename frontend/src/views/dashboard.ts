@@ -1,7 +1,7 @@
 import { supabase } from '../supabase';
-import { apiFetch } from '../api';
+import { apiFetch, getGymStatus, checkinGym } from '../api';
 import { renderCompleteModal, openCompleteTaskModal, setupCompleteModalLogic } from './components/complete_modal';
-import { renderNavbar, setupNavbarLogic } from './components/navbar';
+import { renderNavbar, setupNavbarLogic, showNotification } from './components/navbar';
 import { escapeHtml, safeUrl } from '../utils';
 
 interface Task {
@@ -10,6 +10,7 @@ interface Task {
   user_name: string;
   goal_id?: string | null;
   goal_title?: string | null;
+  category?: string | null;
   title: string;
   is_private: boolean;
   estimated_hours: number;
@@ -22,6 +23,8 @@ interface Task {
   bounty_issuers?: string[];
   is_sniper?: boolean;
   is_first_blood?: boolean;
+  is_proof_verified?: boolean;
+  proof_feedback?: string | null;
   tracked_timer_minutes?: number;
   tracked_timer_hours?: number;
   completed_at?: string | null;
@@ -135,6 +138,39 @@ export function renderDashboard(): string {
               <div id="stat-bounty-pool" class="text-2xl font-black font-mono text-yellow-500">0 pts</div>
               <p class="text-[11px] text-muted mt-0.5" id="stat-bounties-count">0 active challenge contracts</p>
             </div>
+          </div>
+        </div>
+
+        <!-- Daily Habit Checkpoint: Gym Protocol -->
+        <div class="mb-8 theme-card p-4 md:p-5 border border-emerald-500/30 bg-gradient-to-r from-emerald-500/[0.08] via-surface to-surface flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl flex-shrink-0">
+              🏋️
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-primary tracking-wide">Daily Gym Checkpoint</h3>
+                <span id="gym-streak-badge" class="hidden text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                  🔥 0-day streak
+                </span>
+              </div>
+              <p id="gym-status-desc" class="text-xs text-muted mt-0.5">
+                Hit the gym today? Check in to register your physical conditioning and claim +5 pts.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
+            <div id="gym-checked-view" class="hidden flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-xs font-semibold font-mono">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+              <span id="gym-checked-text">Gym Checked (+5 pts)</span>
+            </div>
+            <button 
+              id="gym-checkin-btn" 
+              class="btn-primary text-xs font-semibold py-2 px-4 flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer"
+            >
+              <span>🏋️ Check In for Today (+5 pts)</span>
+            </button>
           </div>
         </div>
 
@@ -398,6 +434,25 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
     await loadFeedAndStats(feedContainer);
   });
 
+  // --- Daily Gym Checkpoint Button Logic ---
+  const gymBtn = document.getElementById('gym-checkin-btn') as HTMLButtonElement;
+  if (gymBtn) {
+    gymBtn.onclick = async () => {
+      gymBtn.disabled = true;
+      gymBtn.textContent = 'Registering...';
+      try {
+        await checkinGym();
+        showNotification('🏋️ Gym Checkpoint Verified! +5 points scored today!');
+        await updateGymCheckpointUI();
+        await loadFeedAndStats(feedContainer);
+      } catch (err: any) {
+        alert(`Failed to check in: ${err.message}`);
+        gymBtn.disabled = false;
+        gymBtn.innerHTML = '<span>🏋️ Check In for Today (+5 pts)</span>';
+      }
+    };
+  }
+
   // --- Quick Bounty Modal Logic ---
   if (closeQuickBountyBtn && quickBountyModal) {
     closeQuickBountyBtn.addEventListener('click', () => quickBountyModal.classList.add('hidden'));
@@ -504,6 +559,7 @@ async function loadFeedAndStats(container: HTMLDivElement) {
     updatePulseStats(stats);
     updateFilterCounts();
     renderFilteredTasks(container);
+    await updateGymCheckpointUI();
 
     const lastUpdated = document.getElementById('last-updated-text');
     if (lastUpdated) {
@@ -516,6 +572,50 @@ async function loadFeedAndStats(container: HTMLDivElement) {
          <span class="font-mono text-xs text-rose-500">Telemetry uplink error: ${escapeHtml(err.message)}</span>
       </div>
     `;
+  }
+}
+
+async function updateGymCheckpointUI() {
+  const gymCheckedView = document.getElementById('gym-checked-view');
+  const gymCheckinBtn = document.getElementById('gym-checkin-btn') as HTMLButtonElement;
+  const gymCheckedText = document.getElementById('gym-checked-text');
+  const gymStreakBadge = document.getElementById('gym-streak-badge');
+  const gymDesc = document.getElementById('gym-status-desc');
+
+  try {
+    const status = await getGymStatus();
+    if (gymStreakBadge) {
+      if (status.streak_days > 0) {
+        gymStreakBadge.classList.remove('hidden');
+        gymStreakBadge.textContent = `🔥 ${status.streak_days}-day streak`;
+      } else {
+        gymStreakBadge.classList.add('hidden');
+      }
+    }
+
+    if (status.checked_today) {
+      if (gymCheckedView) gymCheckedView.classList.remove('hidden');
+      if (gymCheckinBtn) gymCheckinBtn.classList.add('hidden');
+      if (gymCheckedText) {
+        const timeStr = status.checked_at ? new Date(status.checked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        gymCheckedText.textContent = `Gym Checked (+5 pts)${timeStr ? ` • ${timeStr}` : ''}`;
+      }
+      if (gymDesc) {
+        gymDesc.textContent = `Physical conditioning registered for today! You scored +5 pts.`;
+      }
+    } else {
+      if (gymCheckedView) gymCheckedView.classList.add('hidden');
+      if (gymCheckinBtn) {
+        gymCheckinBtn.classList.remove('hidden');
+        gymCheckinBtn.disabled = false;
+        gymCheckinBtn.innerHTML = `<span>🏋️ Check In for Today (+5 pts)</span>`;
+      }
+      if (gymDesc) {
+        gymDesc.textContent = `Hit the gym today? Check in to register your physical conditioning and claim +5 pts.`;
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load gym status:", err);
   }
 }
 
@@ -673,6 +773,16 @@ function renderFilteredTasks(container: HTMLDivElement) {
       </div>
     ` : '';
 
+    const getTaskRate = (cat?: string | null) => {
+      const c = (cat || '').toLowerCase();
+      if (c.includes('dsa')) return 15.0;
+      if (c.includes('dev') || c.includes('coding') || c.includes('career')) return 12.5;
+      if (c.includes('college') || c.includes('studies') || c.includes('learning') || c.includes('work')) return 10.0;
+      return 5.0;
+    };
+    const domainRate = getTaskRate(task.category);
+    const estRewardPts = Math.round(task.estimated_hours * domainRate) + 5;
+
     return `
       <div class="theme-card p-5 border-l-4 ${borderAccent} transition-all duration-200 hover:border-accent/60">
         <!-- Top Row: Operative, Time, Goal, Status -->
@@ -711,7 +821,7 @@ function renderFilteredTasks(container: HTMLDivElement) {
             ${isClassified ? '🔒 [ CLASSIFIED TACTICAL DATA ]' : escapeHtml(task.title)}
           </h3>
 
-          <!-- Achievement Badges (Sniper, First Blood) -->
+          <!-- Achievement Badges (First Blood, Proof Verified) -->
           <div class="flex flex-wrap items-center gap-2 mt-2">
             ${task.is_first_blood ? `
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
@@ -719,9 +829,9 @@ function renderFilteredTasks(container: HTMLDivElement) {
               </span>
             ` : ''}
 
-            ${task.is_sniper ? `
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-                🎯 Sniper Precision (+5 pts)
+            ${task.is_proof_verified ? `
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" title="${escapeHtml(task.proof_feedback || 'System Verified')}">
+                🛡️ Proof Verified (+5 pts)
               </span>
             ` : ''}
 
@@ -746,12 +856,22 @@ function renderFilteredTasks(container: HTMLDivElement) {
           </div>
 
           ${isCompleted && task.proof_url && !isClassified ? `
-            <div class="mt-2.5 flex items-center gap-1.5 text-xs">
+            <div class="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
               <span class="text-muted text-[10px] font-mono uppercase tracking-wider">Proof of Work:</span>
-              <a href="${escapeHtml(safeUrl(task.proof_url))}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] font-mono text-accent hover:underline bg-accent/10 px-2 py-0.5 rounded border border-accent/20 truncate max-w-[320px]">
-                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                <span class="truncate">${escapeHtml(task.proof_url)}</span>
+              <a href="${escapeHtml(safeUrl(task.proof_url))}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-[11px] font-mono text-accent hover:underline bg-accent/10 px-2.5 py-1 rounded border border-accent/20 truncate max-w-[320px]">
+                ${task.proof_url.match(/\.(png|jpg|jpeg|webp|gif)$/i) || task.proof_url.includes('proof_uploads') ? `
+                  <svg class="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  <span class="truncate">📸 View Screenshot</span>
+                ` : `
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  <span class="truncate">${escapeHtml(task.proof_url)}</span>
+                `}
               </a>
+              ${task.is_proof_verified ? `
+                <span class="text-[10px] font-mono text-emerald-400 flex items-center gap-1 font-semibold">
+                  <span>✓ Verified</span>
+                </span>
+              ` : ''}
             </div>
           ` : ''}
 
@@ -770,7 +890,7 @@ function renderFilteredTasks(container: HTMLDivElement) {
             ` : `
               <div class="flex items-center gap-1.5">
                 <span class="text-xs font-mono text-muted">Est. Reward:</span>
-                <span class="text-xs font-mono font-bold text-primary">~${Math.floor(task.estimated_hours * 10) + 5} pts</span>
+                <span class="text-xs font-mono font-bold text-primary">~${estRewardPts} pts</span>
               </div>
             `}
           </div>
@@ -795,6 +915,7 @@ function renderFilteredTasks(container: HTMLDivElement) {
                 data-task-id="${task.id}" 
                 data-task-title="${encodeURIComponent(task.title)}" 
                 data-task-est="${task.estimated_hours}" 
+                data-task-category="${encodeURIComponent(task.category || '')}"
                 data-task-timer-mins="${task.tracked_timer_minutes || 0}"
                 data-task-timer-hours="${task.tracked_timer_hours || 0}"
                 class="btn-primary text-xs font-semibold py-1.5 px-3 flex items-center gap-1.5 shadow-sm"
@@ -868,6 +989,7 @@ function setupCardActionListeners(container: HTMLDivElement) {
       const taskId = target.getAttribute('data-task-id') || '';
       const taskTitle = decodeURIComponent(target.getAttribute('data-task-title') || '');
       const estHours = parseFloat(target.getAttribute('data-task-est') || '0');
+      const category = decodeURIComponent(target.getAttribute('data-task-category') || '');
       const timerMins = parseInt(target.getAttribute('data-task-timer-mins') || '0', 10);
       const timerHours = parseFloat(target.getAttribute('data-task-timer-hours') || '0');
 
@@ -876,7 +998,8 @@ function setupCardActionListeners(container: HTMLDivElement) {
         title: taskTitle,
         estHours,
         trackedTimerMinutes: timerMins,
-        trackedTimerHours: timerHours
+        trackedTimerHours: timerHours,
+        category: category || null
       });
     });
   });

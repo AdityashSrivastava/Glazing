@@ -127,17 +127,17 @@ async def get_goal_tasks(goal_id: UUID, current_user_id: str = Depends(get_curre
         .execute()
     return tasks_res.data or []
 
-VALID_CATEGORIES = ['DSA', 'Development', 'College Studies', 'Gym', 'Life']
+VALID_CATEGORIES = ['Development', 'DSA', 'College Work']
 LEGACY_CATEGORIES = {
     'Coding': 'Development',
-    'Fitness': 'Gym',
-    'Learning': 'College Studies',
     'Career': 'Development',
+    'Learning': 'College Work',
+    'College Studies': 'College Work',
 }
 
 def normalize_category(cat: str) -> str:
     if not cat:
-        return 'Life'
+        return 'Development'
     cat = cat.strip()
     if cat in VALID_CATEGORIES:
         return cat
@@ -146,7 +146,13 @@ def normalize_category(cat: str) -> str:
     for vc in VALID_CATEGORIES:
         if vc.lower() == cat.lower():
             return vc
-    return cat
+    if cat.lower() in ['college studies', 'studies', 'academics']:
+        return 'College Work'
+    if cat.lower() in ['dev', 'coding', 'systems']:
+        return 'Development'
+    if cat.lower() in ['algo', 'dsa']:
+        return 'DSA'
+    return 'Development'
 
 @router.post("", response_model=GoalBase)
 async def create_goal(goal_in: GoalCreate, current_user_id: str = Depends(get_current_user)):

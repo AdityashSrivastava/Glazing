@@ -33,6 +33,9 @@ class TaskBase(BaseModel):
     bounty_issuers: List[str] = Field(default_factory=list)
     is_sniper: bool = False
     is_first_blood: bool = False
+    category: Optional[str] = None
+    is_proof_verified: Optional[bool] = False
+    proof_feedback: Optional[str] = None
     tracked_timer_minutes: Optional[int] = 0
     tracked_timer_hours: Optional[float] = 0.0
     created_at: datetime

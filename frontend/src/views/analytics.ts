@@ -69,7 +69,7 @@ export function renderAnalytics(): string {
             </div>
 
             <div class="flex items-center justify-between text-[11px] text-muted font-mono pt-4 mt-2 border-t border-border/60">
-              <span>AXIS: 5 CORE DOMAINS</span>
+              <span>AXIS: 3 CORE DOMAINS</span>
               <span>SCALE: LINEAR PT AGGREGATION</span>
             </div>
           </div>
@@ -102,7 +102,7 @@ export function renderAnalytics(): string {
                 <span>Operative Intel</span>
               </div>
               <p id="tactical-directive-msg" class="text-[12px] text-body leading-relaxed">
-                Skill balance increases your versatility. When you complete tasks with high sniper accuracy or claim peer bounties, points automatically amplify your domain rank.
+                Skill balance increases your versatility. Tasks scored in Development (12.5 pts/h), DSA (15 pts/h), and College Work (10 pts/h) amplify your domain radar with verified proof.
               </p>
             </div>
           </div>
@@ -119,17 +119,15 @@ export function setupAnalyticsLogic(navigateFn: (route: string) => void) {
   fetchAndRenderRadar();
 }
 
-const DOMAIN_CONFIG: Record<string, { name: string; color: string; bg: string; code: string }> = {
-  'DSA': { name: 'DSA', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.15)', code: 'DSA' },
-  'DEVELOPMENT': { name: 'Development', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', code: 'DEV' },
-  'COLLEGE STUDIES': { name: 'College Studies', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', code: 'COL' },
-  'GYM': { name: 'Gym', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', code: 'GYM' },
-  'LIFE': { name: 'Life', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', code: 'LIF' },
+const DOMAIN_CONFIG: Record<string, { name: string; color: string; bg: string; code: string; rate?: string }> = {
+  'DEVELOPMENT': { name: 'Development', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', code: 'DEV', rate: '12.5 pts/h' },
+  'DSA': { name: 'DSA', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.15)', code: 'DSA', rate: '15.0 pts/h' },
+  'COLLEGE WORK': { name: 'College Work', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', code: 'COL', rate: '10.0 pts/h' },
+  'COLLEGE STUDIES': { name: 'College Work', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', code: 'COL', rate: '10.0 pts/h' },
   // Backward compatibility mappings
-  'CODING': { name: 'Development', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', code: 'DEV' },
-  'FITNESS': { name: 'Gym', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', code: 'GYM' },
-  'LEARNING': { name: 'College Studies', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', code: 'COL' },
-  'CAREER': { name: 'Development', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', code: 'DEV' },
+  'CODING': { name: 'Development', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', code: 'DEV', rate: '12.5 pts/h' },
+  'LEARNING': { name: 'College Work', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', code: 'COL', rate: '10.0 pts/h' },
+  'CAREER': { name: 'Development', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', code: 'DEV', rate: '12.5 pts/h' },
 };
 
 function getTier(points: number): { label: string; badgeClass: string } {
@@ -168,18 +166,18 @@ async function fetchAndRenderRadar() {
       }));
     }
 
-    // Standardize 5 default domains if missing
-    const standardDomains = ['DSA', 'DEVELOPMENT', 'COLLEGE STUDIES', 'GYM', 'LIFE'];
+    // Standardize 3 default domains (Development, DSA, College Work)
+    const standardDomains = ['DEVELOPMENT', 'DSA', 'COLLEGE WORK'];
     const domainMap = new Map<string, number>();
     standardDomains.forEach(d => domainMap.set(d, 0));
     rawList.forEach(item => {
       let key = item.domain;
-      if (key === 'CODING') key = 'DEVELOPMENT';
-      else if (key === 'FITNESS') key = 'GYM';
-      else if (key === 'LEARNING') key = 'COLLEGE STUDIES';
-      else if (key === 'CAREER') key = 'DEVELOPMENT';
-      const cur = domainMap.get(key) || 0;
-      domainMap.set(key, cur + item.total_points);
+      if (key === 'CODING' || key === 'CAREER') key = 'DEVELOPMENT';
+      else if (key === 'COLLEGE STUDIES' || key === 'LEARNING') key = 'COLLEGE WORK';
+      if (domainMap.has(key)) {
+        const cur = domainMap.get(key) || 0;
+        domainMap.set(key, cur + item.total_points);
+      }
     });
 
     const labels = Array.from(domainMap.keys());

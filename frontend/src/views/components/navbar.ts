@@ -303,10 +303,20 @@ export function setupNavbarLogic(navigateFn: (route: string) => void) {
     if (select) {
       try {
         const goals = await apiFetch('/goals');
-        select.innerHTML = '<option value="">-- NO LINKED OBJECTIVE --</option>' + 
+        const getRateLabel = (cat: string) => {
+          const c = (cat || '').toLowerCase();
+          if (c.includes('dsa')) return '15 pts/hr';
+          if (c.includes('dev') || c.includes('coding') || c.includes('career')) return '12.5 pts/hr';
+          if (c.includes('college') || c.includes('studies') || c.includes('learning') || c.includes('work')) return '10 pts/hr';
+          return '5 pts/hr';
+        };
+
+        select.innerHTML = '<option value="">-- NO LINKED OBJECTIVE (Base: 5 pts/hr) --</option>' + 
           goals.map((g: any) => {
             const privBadge = g.is_private ? '[🔒 Classified] ' : '';
-            return `<option value="${escapeHtml(g.id)}">🎯 ${privBadge}${escapeHtml(g.title)}</option>`;
+            const rateStr = getRateLabel(g.category);
+            const catLabel = g.category ? ` [${escapeHtml(g.category)} • ${rateStr}]` : '';
+            return `<option value="${escapeHtml(g.id)}">🎯 ${privBadge}${escapeHtml(g.title)}${catLabel}</option>`;
           }).join('');
       } catch (e) {
         console.error("Failed to load goals into task modal:", e);

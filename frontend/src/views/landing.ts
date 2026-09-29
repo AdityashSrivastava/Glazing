@@ -182,7 +182,7 @@ export function renderLanding(): string {
              <div class="md:w-1/2 pr-12">
                <h2 class="text-3xl font-bold tracking-tight mb-4 text-white">Algorithm-driven accountability.</h2>
                <p class="text-[17px] text-[#adbdcc] leading-relaxed mb-6">
-                 Points aren't arbitrary. Glazing calculates exact performance scores using an open algorithm. We reward not just completion, but precision execution. Missing your estimated time costs you the precision bonus.
+                 Points aren't arbitrary. Glazing calculates performance scores using domain multipliers: 15 pts/hr for DSA, 12.5 pts/hr for Development, 10 pts/hr for College Work, and 5 pts/hr base. Provide verified Proof of Work to unlock an extra +5 pts bonus, plus a daily +5 pts Gym protocol.
                </p>
                <a href="javascript:void(0)" class="text-[#00d4ff] font-semibold text-[15px] hover:text-white transition-colors flex items-center cursor-default">
                  View mechanics <span class="ml-1">&rarr;</span>
@@ -193,39 +193,33 @@ export function renderLanding(): string {
                  
                  <div class="flex space-x-2 mb-4">
                    <div class="text-[#c792ea]">def</div>
-                   <div class="text-[#82aaff]">calculate_execution_score</div><span class="text-[#89ddff]">(</span><span class="text-[#d6deeb]">estimated_hrs, actual_hrs</span><span class="text-[#89ddff]">):</span>
+                   <div class="text-[#82aaff]">calculate_execution_score</div><span class="text-[#89ddff]">(</span><span class="text-[#d6deeb]">domain, actual_hrs, proof_verified</span><span class="text-[#89ddff]">):</span>
                  </div>
                  
                  <div class="pl-4 flex space-x-2">
-                   <div class="text-[#697098] italic"># Base execution multiplier</div>
+                   <div class="text-[#697098] italic"># Domain rates: DSA (15), Dev (12.5), College (10), Base (5)</div>
+                 </div>
+                 <div class="pl-4 flex space-x-2">
+                   <div class="text-[#d6deeb]">rate</div>
+                   <div class="text-[#89ddff]">=</div>
+                   <div class="text-[#82aaff]">DOMAIN_RATES</div><span class="text-[#89ddff]">[</span><span class="text-[#d6deeb]">domain</span><span class="text-[#89ddff]">]</span>
                  </div>
                  <div class="pl-4 flex space-x-2">
                    <div class="text-[#d6deeb]">score</div>
                    <div class="text-[#89ddff]">=</div>
                    <div class="text-[#d6deeb]">actual_hrs</div>
                    <div class="text-[#89ddff]">*</div>
-                   <div class="text-[#f78c6c]">10</div>
+                   <div class="text-[#d6deeb]">rate</div>
                  </div>
                  
                  <div class="pl-4 flex space-x-2 mt-4">
-                   <div class="text-[#697098] italic"># 15-minute precision bonus window</div>
+                   <div class="text-[#697098] italic"># Verified Proof of Work bonus</div>
                  </div>
                  <div class="pl-4 flex space-x-2">
                    <div class="text-[#c792ea]">if</div>
-                   <div class="text-[#82aaff]">abs</div><span class="text-[#89ddff]">(</span><span class="text-[#d6deeb]">estimated_hrs - actual_hrs</span><span class="text-[#89ddff]">)</span>
-                   <div class="text-[#89ddff]"><=</div>
-                   <div class="text-[#f78c6c]">0.25</div><span class="text-[#89ddff]">:</span>
+                   <div class="text-[#d6deeb]">proof_verified</div><span class="text-[#89ddff]">:</span>
                  </div>
                  <div class="pl-8 flex space-x-2">
-                   <div class="text-[#d6deeb]">score</div>
-                   <div class="text-[#89ddff]">+=</div>
-                   <div class="text-[#f78c6c]">5</div>
-                 </div>
-                 
-                 <div class="pl-4 flex space-x-2 mt-4">
-                   <div class="text-[#697098] italic"># Task completion bounty</div>
-                 </div>
-                 <div class="pl-4 flex space-x-2">
                    <div class="text-[#d6deeb]">score</div>
                    <div class="text-[#89ddff]">+=</div>
                    <div class="text-[#f78c6c]">5</div>
@@ -351,12 +345,12 @@ export function setupLandingLogic(navigateFn: (route: string) => void) {
   const featureData: Record<string, { title: string, desc: string, icon: string }> = {
     'leaderboard': {
       title: 'Daily Leaderboard',
-      desc: 'The core of our gamified system. The leaderboard tracks your daily execution points and resets strictly at midnight IST. Points are awarded based on hours logged, with bonuses for precision execution and task completion.',
+      desc: 'The core of our gamified system. The leaderboard tracks your daily execution points and resets strictly at midnight IST. Points are awarded based on domain multipliers (DSA: 15, Dev: 12.5, College Work: 10, Base: 5 pts/hr), with bonuses for verified Proof of Work (+5 pts) and Daily Gym Checkpoint (+5 pts).',
       icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>'
     },
     'goals': {
       title: 'Macro Goals',
-      desc: 'Group your daily grind under long-term objectives. Whether it\'s mastering a new tech stack or hitting the gym, Goals act as the overarching domains to keep your daily tasks aligned with your macro ambitions.',
+      desc: 'Group your daily grind under long-term objectives across 3 core competency domains: Development, DSA, and College Work. Goals act as the overarching domains to keep your daily tasks aligned with your macro ambitions.',
       icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
     },
     'bounties': {
@@ -366,7 +360,7 @@ export function setupLandingLogic(navigateFn: (route: string) => void) {
     },
     'analytics': {
       title: 'Analytics & Radar',
-      desc: 'Track your historical performance across different domains (DSA, Development, College Studies, Gym, Life). Analyze your radar charts, view your task completion rates, and monitor your bounty win-rates over the entire season.',
+      desc: 'Track your historical performance across the 3 competency domains (DSA, Development, College Work). Analyze your 3-axis radar chart, view your task completion rates, and monitor your bounty win-rates over the entire season.',
       icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>'
     }
   };

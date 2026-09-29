@@ -28,6 +28,7 @@ interface UserTask {
   title: string;
   estimated_hours: number;
   goal_title?: string | null;
+  category?: string | null;
   status: string;
   tracked_timer_minutes?: number;
   tracked_timer_hours?: number;
@@ -398,7 +399,8 @@ export function setupTimerLogic(navigateFn: (route: string) => void) {
         title: selectedTaskTitle,
         estHours: task?.estimated_hours || 1.0,
         trackedTimerMinutes: timerMins,
-        trackedTimerHours: timerHours
+        trackedTimerHours: timerHours,
+        category: task?.category || null
       });
     });
   }

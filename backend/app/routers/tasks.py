@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
+import os
+import re
+import time
 from app.models import TaskBase, mask_private_task
 from app.auth import get_current_user
 from app.database import db
@@ -26,6 +29,86 @@ def parse_to_ist(dt_str: Optional[str]) -> Optional[datetime]:
     except Exception:
         return None
 
+def analyze_proof_of_work(task_title: str, domain_category: Optional[str], proof_url: Optional[str]) -> tuple[bool, str]:
+    """
+    Analyses whether the provided Proof of Work (URL link, screenshot, or repository commit)
+    is authentic and reasonably/vaguely related to the work performed.
+    """
+    if not proof_url or not proof_url.strip():
+        return False, "No proof of work provided."
+
+    proof = proof_url.strip().lower()
+    
+    # 1. Reject obvious placeholder or dummy values
+    dummy_patterns = ["test.com", "example.com", "fake.com", "asdf", "foo.bar", "placeholder", "none", "null", "undefined"]
+    for dp in dummy_patterns:
+        if proof == dp or f"//{dp}" in proof:
+            return False, "Proof rejected: Placeholder or dummy link detected."
+
+    # 2. Check for uploaded screenshots or image files
+    image_indicators = ["proof_uploads", ".png", ".jpg", ".jpeg", ".webp", ".gif", "data:image/", "blob:"]
+    is_screenshot = any(ind in proof for ind in image_indicators)
+
+    category = (domain_category or "").strip().lower()
+
+    # 3. Known domain platforms
+    dsa_platforms = ["leetcode", "codeforces", "hackerrank", "geeksforgeeks", "neetcode", "algo", "problem", "submission", "atcoder", "cses", "interviewbit"]
+    dev_platforms = ["github", "gitlab", "bitbucket", "vercel", "netlify", "heroku", "render", "postman", "codepen", "codesandbox", "replit", "pull", "commit", "localhost", "127.0.0.1", "docker", "aws", "gcp"]
+    college_platforms = ["google.com/document", "docs.google", "drive.google", "classroom.google", "canvas", "blackboard", "moodle", "notion.site", "notion.so", "overleaf", ".pdf", "edu/", ".edu", "assignment", "slides"]
+
+    # 4. Extract meaningful tokens from task title
+    stopwords = {"a", "an", "the", "in", "on", "of", "to", "for", "with", "and", "or", "by", "from", "at", "my", "task", "work", "part", "day", "do", "done", "complete", "finish", "test"}
+    title_words = set(re.findall(r'[a-zA-Z0-9]{3,}', task_title.lower())) - stopwords
+
+    # Token match between title and proof URL / filename
+    matching_tokens = [w for w in title_words if w in proof]
+
+    # Verification decision:
+    if is_screenshot:
+        # User uploaded visual proof of execution
+        return True, "Proof verified: Visual screenshot uploaded."
+
+    if "dsa" in category:
+        if any(p in proof for p in dsa_platforms) or any(p in proof for p in ["github", "solution", "dsa", "code"]) or matching_tokens:
+            return True, "Proof verified: Algorithmic platform / code submission detected."
+    elif "dev" in category or "coding" in category or "career" in category:
+        if any(p in proof for p in dev_platforms) or matching_tokens:
+            return True, "Proof verified: Development repository or deployment link confirmed."
+    elif "college" in category or "study" in category or "studies" in category:
+        if any(p in proof for p in college_platforms) or matching_tokens:
+            return True, "Proof verified: Academic document or submission verified."
+    else:
+        # General / unlinked:
+        if matching_tokens or any(p in proof for p in dsa_platforms + dev_platforms + college_platforms):
+            return True, "Proof verified: Task-related link confirmed."
+        if proof.startswith("http://") or proof.startswith("https://"):
+            if len(proof) > 12 and "/" in proof[8:]:
+                return True, "Proof verified: Valid verification link provided."
+
+    if matching_tokens:
+        return True, f"Proof verified: Correlates with task scope ({', '.join(matching_tokens[:2])})."
+
+    return False, "Proof rejected: Provided link does not appear related to the task domain."
+
+DOMAIN_HOURLY_RATES = {
+    "DSA": 15.0,
+    "Development": 12.5,
+    "College Work": 10.0,
+    "College Studies": 10.0,
+}
+
+def get_domain_hourly_rate(category: Optional[str]) -> float:
+    if not category:
+        return 5.0
+    cat_norm = category.strip().lower()
+    if "dsa" in cat_norm:
+        return 15.0
+    elif "dev" in cat_norm or "coding" in cat_norm or "career" in cat_norm:
+        return 12.5
+    elif "college" in cat_norm or "learning" in cat_norm or "studies" in cat_norm or "work" in cat_norm:
+        return 10.0
+    return 5.0
+
 class TaskCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     is_private: bool = False
@@ -34,7 +117,7 @@ class TaskCreate(BaseModel):
 
 class TaskComplete(BaseModel):
     actual_hours: float = Field(..., gt=0, le=12)
-    proof_url: Optional[str] = Field(None, max_length=1000)
+    proof_url: Optional[str] = None
 
     @field_validator("proof_url")
     @classmethod
@@ -44,10 +127,39 @@ class TaskComplete(BaseModel):
         cleaned = v.strip()
         if not cleaned:
             return None
-        if not (cleaned.startswith("http://") or cleaned.startswith("https://")):
-            raise ValueError("Proof URL must be a valid HTTP or HTTPS web address.")
+        if not (cleaned.startswith("http://") or cleaned.startswith("https://") or cleaned.startswith("data:image/")):
+            if "." in cleaned and not cleaned.startswith("/"):
+                return f"https://{cleaned}"
         return cleaned
 
+
+@router.post("/upload-proof")
+async def upload_task_proof(file: UploadFile = File(...), current_user_id: str = Depends(get_current_user)):
+    """Uploads a screenshot or proof asset directly to the proof_uploads Supabase Storage bucket."""
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    content = await file.read()
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="File is empty")
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Max size is 10MB.")
+
+    safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', file.filename)
+    dest_path = f"{current_user_id[:8]}_{int(time.time())}_{safe_name}"
+    content_type = file.content_type or "image/png"
+
+    try:
+        db.storage.from_("proof_uploads").upload(dest_path, content, {"content-type": content_type})
+        public_url = db.storage.from_("proof_uploads").get_public_url(dest_path)
+        return {"url": public_url, "filename": safe_name}
+    except Exception as e:
+        print("Upload failed or bucket handling:", e)
+        try:
+            public_url = db.storage.from_("proof_uploads").get_public_url(dest_path)
+            return {"url": public_url, "filename": safe_name}
+        except Exception:
+            raise HTTPException(status_code=500, detail=f"Failed to upload proof asset: {str(e)}")
 
 class TaskFeedStats(BaseModel):
     active_in_progress_count: int
@@ -103,8 +215,8 @@ async def get_task_feed(current_user_id: str = Depends(get_current_user)):
     users_res = db.table("users").select("id, display_name").execute()
     user_map = {str(u["id"]): u.get("display_name", "Operative") for u in (users_res.data or [])}
 
-    # Map goal_id -> { title, is_private, user_id }
-    goals_res = db.table("goals").select("id, title, user_id").execute()
+    # Map goal_id -> { title, is_private, user_id, category }
+    goals_res = db.table("goals").select("id, title, user_id, category").execute()
     goal_map = {}
     for g in (goals_res.data or []):
         raw_t = g.get("title") or ""
@@ -112,7 +224,8 @@ async def get_task_feed(current_user_id: str = Depends(get_current_user)):
         goal_map[str(g["id"])] = {
             "title": clean_t,
             "is_private": raw_t.startswith("[PRIVATE] "),
-            "user_id": str(g.get("user_id"))
+            "user_id": str(g.get("user_id")),
+            "category": g.get("category")
         }
 
     # Map active bounties on each task
@@ -152,8 +265,10 @@ async def get_task_feed(current_user_id: str = Depends(get_current_user)):
                 task_data["goal_title"] = "[ CLASSIFIED OBJECTIVE ]"
             else:
                 task_data["goal_title"] = g_info["title"]
+            task_data["category"] = g_info.get("category")
         else:
             task_data["goal_title"] = None
+            task_data["category"] = None
 
         # Attach active bounty info
         b_info = bounty_map.get(str(task_data["id"]), {"count": 0, "points": 0, "issuers": []})
@@ -165,10 +280,17 @@ async def get_task_feed(current_user_id: str = Depends(get_current_user)):
         is_completed = task_data.get("status") == "COMPLETED"
         task_data["is_first_blood"] = str(task_data["id"]) in first_blood_task_ids
 
-        est = float(task_data.get("estimated_hours") or 0.0)
-        act = float(task_data.get("actual_hours")) if task_data.get("actual_hours") is not None else None
-        # Sniper bonus awarded if Diff <= 0.5 and est >= 0.5
-        task_data["is_sniper"] = bool(is_completed and act is not None and est >= 0.5 and abs(est - act) <= 0.5)
+        # Sniper precision bonus is removed
+        task_data["is_sniper"] = False
+
+        # Proof of Work verification
+        if is_completed and task_data.get("proof_url"):
+            verified, feedback = analyze_proof_of_work(task_data.get("title", ""), task_data.get("category"), task_data.get("proof_url"))
+            task_data["is_proof_verified"] = verified
+            task_data["proof_feedback"] = feedback
+        else:
+            task_data["is_proof_verified"] = False
+            task_data["proof_feedback"] = None
         
         # Attach tracked Pomodoro timer time
         task_id_str = str(task_data.get("id"))
@@ -272,24 +394,26 @@ async def complete_task(task_id: UUID, payload: TaskComplete, current_user_id: s
 
     points = 0
     
-    # Step 1: Base Time Points (Actual Hours Logged * 10)
-    points += int(payload.actual_hours * 10)
+    # Step 1: Base Time Points (Domain distribution: 12.5 Dev, 15 DSA, 10 College Work, 5 Base/Unlinked)
+    rate = 5.0
+    goal_category = None
+    gid = task.get("goal_id")
+    if gid:
+        goal_res = db.table("goals").select("title, category").eq("id", str(gid)).execute()
+        if goal_res.data:
+            goal_category = goal_res.data[0].get("category")
+
+    rate = get_domain_hourly_rate(goal_category)
+
+    points += int(round(payload.actual_hours * rate))
     
-    # Step 2: Completion Bonus (+5 points)
-    points += 5
+    # Step 2: Proof of Work / Verification Bonus (+5 points only when verifiable proof is provided and system-verified)
+    is_proof_verified, proof_feedback = analyze_proof_of_work(task.get("title", ""), goal_category, payload.proof_url)
+    if is_proof_verified:
+        points += 5
     
-    # Step 3: Sniper Accuracy Bonus
-    # Diff = abs(estimated_hours - actual_hours)
-    # If estimated_hours >= 0.5: Diff <= 0.25 -> +5 pts; Diff <= 0.5 -> +2 pts
-    diff = abs(float(task["estimated_hours"]) - payload.actual_hours)
+    # Step 3: Sniper Precision Bonus -> REMOVED COMPLETELY
     is_sniper = False
-    if float(task["estimated_hours"]) >= 0.5:
-        if diff <= 0.25:
-            points += 5
-            is_sniper = True
-        elif diff <= 0.5:
-            points += 2
-            is_sniper = True
             
     # Step 4: First Blood Bonus (+3 points for first completed task of the day in IST)
     all_completed_res = db.table("tasks").select("id, completed_at").eq("status", "COMPLETED").execute()
@@ -384,8 +508,11 @@ async def complete_task(task_id: UUID, payload: TaskComplete, current_user_id: s
     else:
         completed["goal_title"] = None
 
-    completed["is_sniper"] = is_sniper
+    completed["is_sniper"] = False
     completed["is_first_blood"] = is_first_blood
+    completed["category"] = goal_category
+    completed["is_proof_verified"] = is_proof_verified
+    completed["proof_feedback"] = proof_feedback
 
     # Attach tracked timer duration
     focus_durations = get_tasks_focus_durations(current_user_id)
