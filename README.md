@@ -15,7 +15,7 @@
 
 ---
 
-### 🛠️ Tech Stack
+### 🛠️ Tech Stack.
 
 - **Frontend:** TypeScript, Vite, Modern CSS / Tailwind tokens, Chart.js
 - **Backend:** Python, FastAPI, Uvicorn, Pydantic
