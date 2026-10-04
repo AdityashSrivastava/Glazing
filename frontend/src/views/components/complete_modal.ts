@@ -12,10 +12,10 @@ export interface CompleteModalParams {
 
 export function renderCompleteModal(): string {
   return `
-    <div id="complete-task-modal" class="fixed inset-0 bg-bg/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-opacity duration-200">
-      <div class="theme-card w-full max-w-lg relative animate-in fade-in zoom-in-95 duration-200 border-accent/40 shadow-2xl">
+    <div id="complete-task-modal" class="fixed inset-0 bg-bg/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 transition-opacity duration-200">
+      <div class="theme-card w-full max-w-lg relative animate-in fade-in zoom-in-95 duration-200 border-accent/40 shadow-2xl max-h-[92vh] flex flex-col p-4 sm:p-5 overflow-hidden">
         
-        <div class="flex justify-between items-center mb-5 pb-4 border-b border-border">
+        <div class="flex justify-between items-center mb-3 pb-3 border-b border-border flex-shrink-0">
           <div>
             <h2 class="text-sm font-bold tracking-wider text-primary uppercase flex items-center gap-2">
               <span>⚡ Finalize Task Execution</span>
@@ -28,195 +28,198 @@ export function renderCompleteModal(): string {
           <button id="close-complete-modal-btn" type="button" class="text-muted hover:text-primary transition-colors text-lg leading-none">&times;</button>
         </div>
 
-        <form id="complete-task-form" class="space-y-4">
+        <form id="complete-task-form" class="flex flex-col flex-1 overflow-hidden min-h-0">
           <input type="hidden" id="complete-task-id" />
           <input type="hidden" id="complete-task-est-hours" />
           <input type="hidden" id="complete-task-category" />
           
-          <div class="p-3 rounded-lg bg-surface/60 border border-border/80 flex items-center justify-between text-xs">
-            <span class="text-muted">Estimated Target:</span>
-            <span id="complete-modal-est-display" class="font-mono font-bold text-primary">0.0 hrs</span>
-          </div>
+          <div class="overflow-y-auto pr-1 space-y-2.5 flex-1 custom-scrollbar">
+            
+            <div class="p-2 px-3 rounded-lg bg-surface/60 border border-border/80 flex items-center justify-between text-xs">
+              <span class="text-muted">Estimated Target:</span>
+              <span id="complete-modal-est-display" class="font-mono font-bold text-primary">0.0 hrs</span>
+            </div>
 
-          <!-- Pomodoro Timer Tracked Feed Notification -->
-          <div id="complete-timer-feed-banner" class="hidden p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-between text-xs animate-in fade-in">
-            <div class="flex items-center gap-2 text-blue-400">
-              <span class="text-sm">⏱️</span>
-              <div>
-                <div class="font-bold flex items-center gap-1.5">
-                  <span>Pomo Timer Feed:</span>
-                  <span id="complete-timer-feed-text" class="font-mono text-blue-300 font-semibold">0 mins (0.0h)</span>
+            <!-- Pomodoro Timer Tracked Feed Notification -->
+            <div id="complete-timer-feed-banner" class="hidden p-2 px-3 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-between text-xs animate-in fade-in">
+              <div class="flex items-center gap-2 text-blue-400">
+                <span class="text-sm">⏱️</span>
+                <div>
+                  <div class="font-bold flex items-center gap-1.5">
+                    <span>Pomo Timer Feed:</span>
+                    <span id="complete-timer-feed-text" class="font-mono text-blue-300 font-semibold">0 mins (0.0h)</span>
+                  </div>
+                  <p class="text-[10px] text-muted">Auto-fed into hours worked. You can also adjust or input custom hours below.</p>
                 </div>
-                <p class="text-[10px] text-muted">Auto-fed into hours worked. You can also adjust or input custom hours below.</p>
               </div>
-            </div>
-            <span class="text-[9px] font-mono uppercase bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-bold border border-blue-500/40">Auto-filled</span>
-          </div>
-
-          <!-- Visual Time Entry HUD (: format) -->
-          <div class="p-3.5 rounded-xl bg-surface/60 border border-border/80">
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-[11px] font-bold uppercase text-primary tracking-wider flex items-center gap-1.5">
-                <span>⏱️</span> Actual Time Dedicated (HH : MM)
-              </label>
-              <span id="task-time-display-equiv" class="text-[11px] font-mono font-bold text-accent">1 hr 00 min (1.00h)</span>
+              <span class="text-[9px] font-mono uppercase bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-bold border border-blue-500/40">Auto-filled</span>
             </div>
 
-            <!-- Digital Clock Display with Neon Colon -->
-            <div class="flex items-center justify-center gap-3 p-3 bg-bg rounded-lg border border-border/70 shadow-inner">
-              
-              <!-- Hours Box -->
-              <div class="flex flex-col items-center">
-                <span class="text-[9px] uppercase font-mono text-muted mb-1 font-semibold tracking-wider">Hours</span>
-                <div class="flex items-center">
-                  <input 
-                    type="number" 
-                    id="task-time-hours" 
-                    min="0" 
-                    max="12" 
-                    value="1" 
-                    class="w-16 h-12 text-center text-2xl font-black font-mono bg-surface rounded-lg border border-border focus:border-accent text-primary focus:outline-none transition-all shadow-sm"
-                  />
-                  <div class="flex flex-col ml-1.5 gap-1">
-                    <button type="button" id="btn-inc-hour" class="w-5 h-5 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-xs font-bold transition-colors cursor-pointer">+</button>
-                    <button type="button" id="btn-dec-hour" class="w-5 h-5 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-xs font-bold transition-colors cursor-pointer">-</button>
+            <!-- Visual Time Entry HUD (: format) - Sleek & Compact -->
+            <div class="p-2.5 rounded-xl bg-surface/60 border border-border/80">
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-[11px] font-bold uppercase text-primary tracking-wider flex items-center gap-1.5">
+                  <span>⏱️</span> Actual Time Dedicated (HH : MM)
+                </label>
+                <span id="task-time-display-equiv" class="text-[11px] font-mono font-bold text-accent">1 hr 00 min (1.00h)</span>
+              </div>
+
+              <!-- Compact Digital Clock Display with Steppers -->
+              <div class="flex items-center justify-center gap-2 p-2 bg-bg/90 rounded-lg border border-border/70 shadow-inner">
+                
+                <!-- Hours Box -->
+                <div class="flex flex-col items-center">
+                  <span class="text-[8px] uppercase font-mono text-muted mb-0.5 font-semibold tracking-wider">Hours</span>
+                  <div class="flex items-center">
+                    <input 
+                      type="number" 
+                      id="task-time-hours" 
+                      min="0" 
+                      max="12" 
+                      value="1" 
+                      class="w-14 h-9 text-center text-lg font-black font-mono bg-surface rounded-md border border-border focus:border-accent text-primary focus:outline-none transition-all shadow-sm"
+                    />
+                    <div class="flex flex-col ml-1 gap-0.5">
+                      <button type="button" id="btn-inc-hour" class="w-4 h-4 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-[10px] font-bold transition-colors cursor-pointer">+</button>
+                      <button type="button" id="btn-dec-hour" class="w-4 h-4 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-[10px] font-bold transition-colors cursor-pointer">-</button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Stylized Neon Colon Separator -->
-              <div class="text-3xl font-black text-accent font-mono pt-3 select-none animate-pulse">:</div>
+                <!-- Stylized Colon Separator -->
+                <div class="text-xl font-black text-accent font-mono pt-2.5 select-none animate-pulse">:</div>
 
-              <!-- Minutes Box -->
-              <div class="flex flex-col items-center">
-                <span class="text-[9px] uppercase font-mono text-muted mb-1 font-semibold tracking-wider">Minutes</span>
-                <div class="flex items-center">
-                  <input 
-                    type="number" 
-                    id="task-time-minutes" 
-                    min="0" 
-                    max="59" 
-                    value="0" 
-                    class="w-16 h-12 text-center text-2xl font-black font-mono bg-surface rounded-lg border border-border focus:border-accent text-primary focus:outline-none transition-all shadow-sm"
-                  />
-                  <div class="flex flex-col ml-1.5 gap-1">
-                    <button type="button" id="btn-inc-min" class="w-5 h-5 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-xs font-bold transition-colors cursor-pointer">+</button>
-                    <button type="button" id="btn-dec-min" class="w-5 h-5 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-xs font-bold transition-colors cursor-pointer">-</button>
+                <!-- Minutes Box -->
+                <div class="flex flex-col items-center">
+                  <span class="text-[8px] uppercase font-mono text-muted mb-0.5 font-semibold tracking-wider">Minutes</span>
+                  <div class="flex items-center">
+                    <input 
+                      type="number" 
+                      id="task-time-minutes" 
+                      min="0" 
+                      max="59" 
+                      value="0" 
+                      class="w-14 h-9 text-center text-lg font-black font-mono bg-surface rounded-md border border-border focus:border-accent text-primary focus:outline-none transition-all shadow-sm"
+                    />
+                    <div class="flex flex-col ml-1 gap-0.5">
+                      <button type="button" id="btn-inc-min" class="w-4 h-4 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-[10px] font-bold transition-colors cursor-pointer">+</button>
+                      <button type="button" id="btn-dec-min" class="w-4 h-4 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-[10px] font-bold transition-colors cursor-pointer">-</button>
+                    </div>
                   </div>
                 </div>
+
               </div>
 
-            </div>
-
-            <!-- Quick Add & Presets -->
-            <div class="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-border/40">
-              <span class="text-[10px] text-muted font-mono uppercase mr-0.5 font-medium">Quick:</span>
-              <button type="button" class="time-quick-add px-2 py-0.5 rounded bg-surface hover:bg-accent/10 hover:text-accent border border-border text-[11px] font-mono text-muted transition-colors cursor-pointer" data-mins="15">+15m</button>
-              <button type="button" class="time-quick-add px-2 py-0.5 rounded bg-surface hover:bg-accent/10 hover:text-accent border border-border text-[11px] font-mono text-muted transition-colors cursor-pointer" data-mins="30">+30m</button>
-              <button type="button" class="time-quick-add px-2 py-0.5 rounded bg-surface hover:bg-accent/10 hover:text-accent border border-border text-[11px] font-mono text-muted transition-colors cursor-pointer" data-mins="60">+1h</button>
-              <div class="h-3 w-[1px] bg-border mx-1"></div>
-              <button type="button" class="time-preset-set px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 text-[10px] font-mono font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="0" data-m="25">25m Pomo</button>
-              <button type="button" class="time-preset-set px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 text-[10px] font-mono font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="0" data-m="50">50m Deep</button>
-              <button type="button" class="time-preset-set px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 text-[10px] font-mono font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="1" data-m="15">1h 15m</button>
-              <button type="button" class="time-preset-set px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 text-[10px] font-mono font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="2" data-m="0">2h 00m</button>
-            </div>
-
-            <!-- Synchronized Hidden Input for API payload -->
-            <input type="hidden" id="task-actual-hours" name="actual_hours" value="1.0" />
-          </div>
-
-          <!-- Proof of Work Multi-Modal Ingestion -->
-          <div class="space-y-1.5">
-            <div class="flex items-center justify-between">
-              <label class="block text-[11px] font-semibold uppercase text-muted tracking-wider">
-                Proof of Work / Verification
-              </label>
-              <span id="complete-proof-badge" class="text-[10px] font-mono text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20 font-semibold">
-                +5 pts upon verification
-              </span>
-            </div>
-
-            <!-- Drag & Drop / Click Upload / Paste Box -->
-            <div 
-              id="proof-dropzone" 
-              class="border border-dashed border-border hover:border-accent/60 bg-surface/40 hover:bg-surface/70 rounded-lg p-3 text-center transition-all cursor-pointer relative select-none"
-            >
-              <input type="file" id="task-proof-file" accept="image/*,.pdf" class="hidden" />
-              
-              <div id="dropzone-default-content" class="flex flex-col items-center justify-center gap-1 py-1">
-                <div class="flex items-center gap-2 text-xs font-semibold text-primary">
-                  <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  <span>Click to Upload Screenshot or Drop Image</span>
-                </div>
-                <p class="text-[10px] text-muted font-mono">
-                  Or press <kbd class="px-1 py-0.5 rounded bg-surface border border-border text-[9px] text-primary">Ctrl+V</kbd> to paste clipboard screenshot
-                </p>
+              <!-- Quick Add & Presets in a Compact Row -->
+              <div class="flex flex-wrap items-center gap-1 mt-1.5 pt-1.5 border-t border-border/40 text-[10px] font-mono">
+                <span class="text-muted uppercase mr-0.5">Quick:</span>
+                <button type="button" class="time-quick-add px-1.5 py-0.5 rounded bg-surface hover:bg-accent/15 hover:text-accent border border-border text-muted transition-colors cursor-pointer" data-mins="15">+15m</button>
+                <button type="button" class="time-quick-add px-1.5 py-0.5 rounded bg-surface hover:bg-accent/15 hover:text-accent border border-border text-muted transition-colors cursor-pointer" data-mins="30">+30m</button>
+                <button type="button" class="time-quick-add px-1.5 py-0.5 rounded bg-surface hover:bg-accent/15 hover:text-accent border border-border text-muted transition-colors cursor-pointer" data-mins="60">+1h</button>
+                <div class="h-2.5 w-[1px] bg-border mx-0.5"></div>
+                <button type="button" class="time-preset-set px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="0" data-m="25">25m</button>
+                <button type="button" class="time-preset-set px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="0" data-m="50">50m</button>
+                <button type="button" class="time-preset-set px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="1" data-m="15">1h 15m</button>
+                <button type="button" class="time-preset-set px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="2" data-m="0">2h</button>
               </div>
 
-              <!-- Preview container if image uploaded -->
-              <div id="proof-preview-container" class="hidden flex items-center justify-between gap-3 text-left">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <img id="proof-preview-img" src="" alt="Proof Preview" class="w-12 h-12 object-cover rounded-md border border-accent/30 shadow-sm" />
-                  <div class="min-w-0">
-                    <p id="proof-filename" class="text-xs font-semibold text-primary truncate max-w-[220px]">screenshot.png</p>
-                    <p class="text-[10px] text-emerald-400 font-mono flex items-center gap-1 mt-0.5">
-                      <span>✓ Secure Cloud Upload Verified</span>
-                    </p>
-                  </div>
-                </div>
-                <button type="button" id="remove-proof-btn" class="text-xs font-bold text-muted hover:text-red-400 px-2 py-1 rounded hover:bg-surface transition-colors" title="Remove screenshot">✕ Remove</button>
-              </div>
-
-              <!-- Uploading spinner -->
-              <div id="proof-upload-spinner" class="hidden flex items-center justify-center gap-2 text-xs text-accent font-mono py-2">
-                <svg class="animate-spin h-4 w-4 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-                <span>Uploading evidence to storage...</span>
-              </div>
+              <!-- Synchronized Hidden Input for API payload -->
+              <input type="hidden" id="task-actual-hours" name="actual_hours" value="1.0" />
             </div>
 
-            <!-- Direct URL / Text Link input -->
-            <div class="relative">
-              <input 
-                type="text" 
-                id="task-proof-url" 
-                class="theme-input font-mono text-xs pr-14" 
-                placeholder="Or paste URL (GitHub PR / commit link, LeetCode, Google Doc)" 
-              />
-              <button 
-                type="button" 
-                id="paste-url-btn" 
-                class="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-border text-muted hover:text-primary transition-colors cursor-pointer"
+            <!-- Proof of Work Multi-Modal Ingestion -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="block text-[11px] font-semibold uppercase text-muted tracking-wider">
+                  Proof of Work / Verification
+                </label>
+                <span id="complete-proof-badge" class="text-[10px] font-mono text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20 font-semibold">
+                  +5 pts upon verification
+                </span>
+              </div>
+
+              <!-- Drag & Drop / Click Upload / Paste Box -->
+              <div 
+                id="proof-dropzone" 
+                class="border border-dashed border-border hover:border-accent/60 bg-surface/40 hover:bg-surface/70 rounded-lg p-2.5 text-center transition-all cursor-pointer relative select-none"
               >
-                Paste
-              </button>
+                <input type="file" id="task-proof-file" accept="image/*,.pdf" class="hidden" />
+                
+                <div id="dropzone-default-content" class="flex flex-col items-center justify-center gap-0.5 py-0.5">
+                  <div class="flex items-center gap-2 text-xs font-semibold text-primary">
+                    <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span>Click to Upload Screenshot or Drop Image</span>
+                  </div>
+                  <p class="text-[10px] text-muted font-mono">
+                    Or press <kbd class="px-1 py-0.5 rounded bg-surface border border-border text-[9px] text-primary">Ctrl+V</kbd> to paste clipboard screenshot
+                  </p>
+                </div>
+
+                <!-- Preview container if image uploaded -->
+                <div id="proof-preview-container" class="hidden flex items-center justify-between gap-3 text-left">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <img id="proof-preview-img" src="" alt="Proof Preview" class="w-10 h-10 object-cover rounded-md border border-accent/30 shadow-sm" />
+                    <div class="min-w-0">
+                      <p id="proof-filename" class="text-xs font-semibold text-primary truncate max-w-[220px]">screenshot.png</p>
+                      <p class="text-[10px] text-emerald-400 font-mono flex items-center gap-1 mt-0.5">
+                        <span>✓ Secure Cloud Upload Verified</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button type="button" id="remove-proof-btn" class="text-xs font-bold text-muted hover:text-red-400 px-2 py-1 rounded hover:bg-surface transition-colors" title="Remove screenshot">✕ Remove</button>
+                </div>
+
+                <!-- Uploading spinner -->
+                <div id="proof-upload-spinner" class="hidden flex items-center justify-center gap-2 text-xs text-accent font-mono py-1.5">
+                  <svg class="animate-spin h-4 w-4 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                  <span>Uploading evidence to storage...</span>
+                </div>
+              </div>
+
+              <!-- Direct URL / Text Link input -->
+              <div class="relative">
+                <input 
+                  type="text" 
+                  id="task-proof-url" 
+                  class="theme-input font-mono text-xs pr-14 py-1.5" 
+                  placeholder="Or paste URL (GitHub PR / commit link, LeetCode, Google Doc)" 
+                />
+                <button 
+                  type="button" 
+                  id="paste-url-btn" 
+                  class="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-border text-muted hover:text-primary transition-colors cursor-pointer"
+                >
+                  Paste
+                </button>
+              </div>
             </div>
 
-            <p class="text-[10px] text-muted leading-relaxed font-mono">
-              The system analyses your proof and verifies that it is authentically related to the task to award the +5 pts verification bonus.
-            </p>
+            <!-- Live Gamification Projected Reward -->
+            <div id="projected-reward-box" class="p-2.5 rounded-lg border border-accent/20 bg-accent/[0.04] space-y-1 hidden">
+              <div class="flex items-center justify-between text-xs font-semibold text-primary">
+                <span>Projected Point Gain:</span>
+                <span id="proj-total-pts" class="font-mono font-bold text-accent text-sm">+0 pts</span>
+              </div>
+              <div class="text-[10px] text-muted space-y-0.5 font-mono">
+                <div class="flex justify-between">
+                  <span id="proj-base-label">Base Points:</span>
+                  <span id="proj-base-pts">0 pts</span>
+                </div>
+                <div class="flex justify-between" id="proj-proof-row">
+                  <span>Proof of Work Bonus:</span>
+                  <span id="proj-proof-pts" class="text-emerald-400">+5 pts</span>
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          <!-- Live Gamification Projected Reward -->
-          <div id="projected-reward-box" class="p-3.5 rounded-lg border border-accent/20 bg-accent/[0.04] space-y-1.5 hidden">
-            <div class="flex items-center justify-between text-xs font-semibold text-primary">
-              <span>Projected Point Gain:</span>
-              <span id="proj-total-pts" class="font-mono font-bold text-accent text-sm">+0 pts</span>
-            </div>
-            <div class="text-[10px] text-muted space-y-0.5 font-mono">
-              <div class="flex justify-between">
-                <span id="proj-base-label">Base Points:</span>
-                <span id="proj-base-pts">0 pts</span>
-              </div>
-              <div class="flex justify-between" id="proj-proof-row">
-                <span>Proof of Work Bonus:</span>
-                <span id="proj-proof-pts" class="text-emerald-400">+5 pts</span>
-              </div>
-            </div>
+          <!-- Docked Sticky Submit Footer (Always Visible!) -->
+          <div class="pt-3 border-t border-border/70 flex-shrink-0 bg-surface/50">
+            <button type="submit" id="submit-complete-btn" class="btn-primary w-full font-mono tracking-wider text-xs uppercase py-2.5 cursor-pointer shadow-md">
+              Confirm & Claim Points
+            </button>
           </div>
-
-          <button type="submit" id="submit-complete-btn" class="btn-primary w-full mt-2 font-mono tracking-wider text-xs uppercase py-2.5 cursor-pointer">
-            Confirm & Claim Points
-          </button>
         </form>
 
       </div>

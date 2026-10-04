@@ -327,9 +327,103 @@ export function setupNavbarLogic(navigateFn: (route: string) => void) {
   if (openModalBtn && modal) {
     openModalBtn.addEventListener('click', async () => {
       modal.classList.remove('hidden');
+      setCreateDigitalTime(1, 0);
       await populateGoalDropdown();
     });
   }
+
+  // --- Initialize Task Visual Time HUD Logic ---
+  const taskEstInput = document.getElementById('task-est') as HTMLInputElement;
+  const createHoursInput = document.getElementById('create-task-hours') as HTMLInputElement;
+  const createMinsInput = document.getElementById('create-task-minutes') as HTMLInputElement;
+  const createTimeEquiv = document.getElementById('create-task-time-equiv');
+
+  const setCreateDigitalTime = (h: number, m: number) => {
+    let hours = Math.max(0, Math.min(12, h));
+    let minutes = Math.max(0, Math.min(59, m));
+    if (hours === 0 && minutes < 5) minutes = 5;
+
+    if (createHoursInput) createHoursInput.value = String(hours);
+    if (createMinsInput) createMinsInput.value = String(minutes);
+
+    const totalDec = Math.round((hours + (minutes / 60.0)) * 100) / 100;
+    if (taskEstInput) taskEstInput.value = String(Math.max(0.1, totalDec));
+    if (createTimeEquiv) {
+      createTimeEquiv.textContent = `${hours} hr ${String(minutes).padStart(2, '0')} min (${totalDec.toFixed(2)}h)`;
+    }
+  };
+
+  createHoursInput?.addEventListener('input', () => {
+    setCreateDigitalTime(parseInt(createHoursInput.value) || 0, parseInt(createMinsInput?.value || '0') || 0);
+  });
+
+  createMinsInput?.addEventListener('input', () => {
+    let m = parseInt(createMinsInput.value) || 0;
+    let h = parseInt(createHoursInput?.value || '0') || 0;
+    if (m >= 60) {
+      h += Math.floor(m / 60);
+      m = m % 60;
+    }
+    setCreateDigitalTime(h, m);
+  });
+
+  document.getElementById('create-btn-inc-hour')?.addEventListener('click', () => {
+    const curH = parseInt(createHoursInput?.value || '0') || 0;
+    const curM = parseInt(createMinsInput?.value || '0') || 0;
+    setCreateDigitalTime(curH + 1, curM);
+  });
+
+  document.getElementById('create-btn-dec-hour')?.addEventListener('click', () => {
+    const curH = parseInt(createHoursInput?.value || '0') || 0;
+    const curM = parseInt(createMinsInput?.value || '0') || 0;
+    setCreateDigitalTime(Math.max(0, curH - 1), curM);
+  });
+
+  document.getElementById('create-btn-inc-min')?.addEventListener('click', () => {
+    const curH = parseInt(createHoursInput?.value || '0') || 0;
+    const curM = parseInt(createMinsInput?.value || '0') || 0;
+    let nextM = curM + 5;
+    let nextH = curH;
+    if (nextM >= 60) {
+      nextH += 1;
+      nextM -= 60;
+    }
+    setCreateDigitalTime(nextH, nextM);
+  });
+
+  document.getElementById('create-btn-dec-min')?.addEventListener('click', () => {
+    const curH = parseInt(createHoursInput?.value || '0') || 0;
+    const curM = parseInt(createMinsInput?.value || '0') || 0;
+    let nextM = curM - 5;
+    let nextH = curH;
+    if (nextM < 0) {
+      if (nextH > 0) {
+        nextH -= 1;
+        nextM += 60;
+      } else {
+        nextM = 0;
+      }
+    }
+    setCreateDigitalTime(nextH, nextM);
+  });
+
+  document.querySelectorAll('.create-quick-add').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const minsToAdd = parseInt((e.currentTarget as HTMLElement).getAttribute('data-mins') || '15') || 15;
+      const curH = parseInt(createHoursInput?.value || '0') || 0;
+      const curM = parseInt(createMinsInput?.value || '0') || 0;
+      const totalM = (curH * 60) + curM + minsToAdd;
+      setCreateDigitalTime(Math.floor(totalM / 60), totalM % 60);
+    });
+  });
+
+  document.querySelectorAll('.create-preset-set').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const h = parseInt((e.currentTarget as HTMLElement).getAttribute('data-h') || '0') || 0;
+      const m = parseInt((e.currentTarget as HTMLElement).getAttribute('data-m') || '0') || 0;
+      setCreateDigitalTime(h, m);
+    });
+  });
 
   if (closeModalBtn && modal) {
     closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
@@ -366,6 +460,7 @@ export function setupNavbarLogic(navigateFn: (route: string) => void) {
 
         if (modal) modal.classList.add('hidden');
         createTaskForm.reset();
+        setCreateDigitalTime(1, 0);
         showNotification(`🚀 Task "${title}" deployed to field!`);
 
         // Notify page views that a task was created
