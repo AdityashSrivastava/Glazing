@@ -445,34 +445,38 @@ async function fetchAndRenderWeeklyAchievers() {
   try {
     const data = await getWeeklyAchievers();
     const latest = data.latest_completed_week;
+    const preview = data.current_week_preview;
     const pastWeeks = data.past_weeks || [];
     const isSunday = data.is_sunday_night;
 
-    const winner = latest?.winner;
-    const s1 = latest?.party_sponsors?.[0] || 'Rank 4';
-    const s2 = latest?.party_sponsors?.[1] || 'Rank 5';
+    const activeOrLatest = (latest && latest.is_completed) ? latest : preview;
+    const winner = activeOrLatest?.winner;
+    const s1 = activeOrLatest?.party_sponsors?.[0] || 'Rank 4';
+    const s2 = activeOrLatest?.party_sponsors?.[1] || 'Rank 5';
+    const isCompleted = activeOrLatest?.is_completed || false;
 
     let heroHtml = '';
-    if (latest && winner) {
+    if (activeOrLatest && winner) {
       heroHtml = `
         <div class="relative overflow-hidden rounded-3xl p-6 md:p-8 bg-gradient-to-br from-amber-400/[0.08] via-surface to-orange-500/[0.05] border border-amber-400/30 shadow-lg">
           
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-border/60">
             <div>
-              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-400 border border-amber-400/30 text-[11px] font-mono font-bold uppercase tracking-wider mb-2">
-                <span>👑 ${isSunday ? 'LIVE WEEKLY SPRINT LEADER' : 'REIGNING WEEKLY CHAMPION'}</span>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full ${isCompleted ? 'bg-amber-400/20 text-amber-400 border-amber-400/30' : 'bg-orange-500/20 text-orange-300 border-orange-500/30'} text-[11px] font-mono font-bold uppercase tracking-wider mb-2">
+                <span>${isCompleted ? '👑 REIGNING WEEKLY CHAMPION' : isSunday ? '⚡ SUNDAY SPRINT FINALE (FREEZES AT 12:00 AM)' : '🔥 LIVE SPRINT PROJECTION'}</span>
               </div>
               <h3 class="text-3xl md:text-4xl font-extrabold text-primary tracking-tight">
                 ${escapeHtml(winner.display_name)}
               </h3>
               <p class="text-xs text-muted font-mono mt-1">
-                ${escapeHtml(latest.week_label)} • ${winner.points} pts scored • ${winner.tasks_completed} tasks • ${winner.hours_logged}h logged
+                ${escapeHtml(activeOrLatest.week_label)} • ${winner.points} pts scored • ${winner.tasks_completed} tasks • ${winner.hours_logged}h logged
+                ${!isCompleted ? ' • <span class="text-amber-400 font-bold">Live Standings</span>' : ''}
               </p>
             </div>
 
             <div class="flex items-center gap-3">
               <button id="view-celebration-popup-btn" class="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-amber-400/20 cursor-pointer">
-                <span>🎉</span> View Party Mandate Popup
+                <span>🎉</span> ${isCompleted ? 'View Party Mandate Popup' : 'Preview Party Mandate'}
               </button>
             </div>
           </div>
@@ -486,22 +490,25 @@ async function fetchAndRenderWeeklyAchievers() {
                   <span>PANEER PATTIES PARTY MANDATE</span>
                 </h4>
                 <p class="text-xs text-body font-medium mt-0.5 leading-relaxed">
-                  Rank 4 (<strong>${escapeHtml(s1)}</strong>) & Rank 5 (<strong>${escapeHtml(s2)}</strong>) MUST sponsor a Paneer Patties Party for champion <strong>${escapeHtml(winner.display_name)}</strong>!
+                  ${isCompleted 
+                    ? `Rank 4 (<strong>${escapeHtml(s1)}</strong>) & Rank 5 (<strong>${escapeHtml(s2)}</strong>) MUST sponsor a celebratory Paneer Patties Party for champion <strong>${escapeHtml(winner.display_name)}</strong>!`
+                    : `<strong>Sunday Freeze Warning:</strong> Operatives who finish at #4 (currently <strong>${escapeHtml(s1)}</strong>) & #5 (currently <strong>${escapeHtml(s2)}</strong>) at midnight will owe <strong>${escapeHtml(winner.display_name)}</strong> a Paneer Patties Party!`
+                  }
                 </p>
               </div>
             </div>
             <div class="flex items-center gap-2 font-mono text-[11px] px-3 py-1.5 rounded-xl bg-orange-500/20 text-orange-300 border border-orange-500/30 font-bold whitespace-nowrap self-start sm:self-auto">
-              <span>💸 Patties on ${escapeHtml(s1)} & ${escapeHtml(s2)}</span>
+              <span>${isCompleted ? '💸 Mandate on' : '⚠️ On Hot Seat:'} ${escapeHtml(s1)} & ${escapeHtml(s2)}</span>
             </div>
           </div>
 
           <!-- Standings Accordion -->
           <div class="mt-6">
             <div class="text-[11px] font-mono text-muted uppercase mb-2 font-semibold">
-              ${escapeHtml(latest.week_label)} Full Squad Standings:
+              ${escapeHtml(activeOrLatest.week_label)} Squad Standings ${!isCompleted ? '(Live)' : ''}:
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              ${latest.rankings.map(r => `
+              ${activeOrLatest.rankings.map(r => `
                 <div class="p-3.5 rounded-xl border ${r.rank === 1 ? 'border-amber-400/50 bg-amber-400/[0.04]' : r.party_duty ? 'border-orange-500/40 bg-orange-500/[0.03]' : 'border-border bg-surface'} flex flex-col justify-between">
                   <div class="flex items-center justify-between text-xs mb-1.5">
                     <span class="font-mono font-bold ${r.rank === 1 ? 'text-amber-400' : r.party_duty ? 'text-orange-400' : 'text-muted'}">
@@ -511,7 +518,7 @@ async function fetchAndRenderWeeklyAchievers() {
                   </div>
                   <div class="font-bold text-sm text-primary truncate">${escapeHtml(r.display_name)}</div>
                   <div class="mt-2 text-[10px] font-mono ${r.rank === 1 ? 'text-amber-400 font-bold' : r.party_duty ? 'text-orange-400 font-bold animate-pulse' : 'text-muted'}">
-                    ${r.rank === 1 ? 'Free Patties Guest' : r.party_duty ? '💸 Sponsoring Party' : 'Safe'}
+                    ${r.rank === 1 ? 'Free Patties' : r.party_duty ? (isCompleted ? '💸 Sponsoring Party' : '⚠️ Hot Seat') : 'Safe'}
                   </div>
                 </div>
               `).join('')}
@@ -523,7 +530,7 @@ async function fetchAndRenderWeeklyAchievers() {
     }
 
     // Historical Archive Cards
-    const weeksToDisplay = pastWeeks.length > 0 ? pastWeeks : (latest ? [latest] : []);
+    const weeksToDisplay = pastWeeks;
 
     const archiveHtml = `
       <div class="theme-card p-6 border border-border">
@@ -539,7 +546,11 @@ async function fetchAndRenderWeeklyAchievers() {
         </div>
 
         <div class="space-y-4">
-          ${weeksToDisplay.map((w, idx) => `
+          ${weeksToDisplay.length === 0 ? `
+            <div class="py-8 text-center text-muted font-mono text-xs bg-surface/30 rounded-xl border border-border/40">
+              No previous weeks archived yet. The current week concludes and archives tonight after 12:00 AM (midnight IST).
+            </div>
+          ` : weeksToDisplay.map((w, idx) => `
             <div class="p-4 rounded-2xl bg-surface/60 border border-border/80 hover:border-accent/40 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div class="flex items-start gap-4">
                 <div class="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/30 text-amber-400 flex items-center justify-center text-xl font-bold font-mono shrink-0">
@@ -573,26 +584,32 @@ async function fetchAndRenderWeeklyAchievers() {
     `;
 
     container.innerHTML = `
-      ${heroHtml}
-      ${archiveHtml}
+      <div class="space-y-8">
+        ${heroHtml}
+        ${archiveHtml}
+      </div>
     `;
 
-    // Hook up button to open modal
-    document.getElementById('view-celebration-popup-btn')?.addEventListener('click', () => {
-      if (latest) openWeeklyWinnerModal(latest);
-    });
+    // Hook up view celebration button
+    const celebrationBtn = document.getElementById('view-celebration-popup-btn');
+    if (celebrationBtn && activeOrLatest) {
+      celebrationBtn.onclick = () => openWeeklyWinnerModal(activeOrLatest);
+    }
 
-    document.querySelectorAll('.view-week-detail-btn').forEach(b => {
-      b.addEventListener('click', (e) => {
-        const wid = (e.currentTarget as HTMLElement).getAttribute('data-week-id');
-        const targetWeek = weeksToDisplay.find(w => w.week_id === wid);
-        if (targetWeek) openWeeklyWinnerModal(targetWeek);
+    // Hook up detail buttons in archive
+    document.querySelectorAll('.view-week-detail-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const weekId = (e.currentTarget as HTMLElement).getAttribute('data-week-id');
+        const found = weeksToDisplay.find(w => w.week_id === weekId);
+        if (found) {
+          openWeeklyWinnerModal(found);
+        }
       });
     });
 
   } catch (err: any) {
     container.innerHTML = `
-      <div class="theme-card p-6 text-center text-rose-400 font-mono text-xs">
+      <div class="theme-card p-8 text-center text-rose-500 font-mono text-xs">
         Failed to load weekly achievers: ${escapeHtml(err.message)}
       </div>
     `;

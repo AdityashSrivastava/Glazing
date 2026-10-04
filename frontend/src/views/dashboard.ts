@@ -150,7 +150,7 @@ export function renderDashboard(): string {
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <h3 class="text-sm font-bold text-orange-400 tracking-wide font-mono uppercase">Paneer Patties Party Protocol</h3>
+                <h3 id="dashboard-party-title" class="text-sm font-bold text-orange-400 tracking-wide font-mono uppercase">Paneer Patties Party Protocol</h3>
                 <span id="dashboard-party-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/40">
                   Weekly Mandate
                 </span>
@@ -368,21 +368,31 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
   // 2. Weekly Achiever & Paneer Patties Party Protocol Check
   getWeeklyAchievers().then(data => {
     const latest = data?.latest_completed_week;
-    if (latest && latest.winner) {
-      const partyBanner = document.getElementById('dashboard-party-banner');
-      const partyDesc = document.getElementById('dashboard-party-desc');
-      const partyBtn = document.getElementById('dashboard-open-party-modal-btn');
+    const preview = data?.current_week_preview;
+    const partyBanner = document.getElementById('dashboard-party-banner');
+    const partyTitle = document.getElementById('dashboard-party-title');
+    const partyBadge = document.getElementById('dashboard-party-badge');
+    const partyDesc = document.getElementById('dashboard-party-desc');
+    const partyBtn = document.getElementById('dashboard-open-party-modal-btn');
 
+    if (latest && latest.is_completed && latest.winner) {
+      // The week has officially concluded (past Sunday 23:59:59 IST)!
       const s1 = latest.party_sponsors?.[0] || 'Rank 4';
       const s2 = latest.party_sponsors?.[1] || 'Rank 5';
       const winnerName = latest.winner.display_name;
 
       if (partyBanner && partyDesc) {
+        if (partyTitle) partyTitle.textContent = 'Paneer Patties Party Protocol';
+        if (partyBadge) {
+          partyBadge.textContent = 'Weekly Mandate';
+          partyBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/40';
+        }
         partyDesc.innerHTML = `Rank 4 (<strong>${escapeHtml(s1)}</strong>) & Rank 5 (<strong>${escapeHtml(s2)}</strong>) owe champion <strong>${escapeHtml(winnerName)}</strong> a Paneer Patties Party!`;
         partyBanner.classList.remove('hidden');
       }
 
       if (partyBtn) {
+        partyBtn.innerHTML = '<span>🎉</span><span>View Debrief</span>';
         partyBtn.onclick = () => openWeeklyWinnerModal(latest);
       }
 
@@ -393,6 +403,28 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
           openWeeklyWinnerModal(latest);
         }, 600);
       }
+    } else if (preview && preview.winner) {
+      // Active sprint in progress (e.g. Sunday before 12:00 AM midnight freeze!)
+      const s1 = preview.party_sponsors?.[0] || 'Rank 4';
+      const s2 = preview.party_sponsors?.[1] || 'Rank 5';
+      const winnerName = preview.winner.display_name;
+
+      if (partyBanner && partyDesc) {
+        if (partyTitle) partyTitle.textContent = data.is_sunday_night ? '⚡ Sunday Sprint Finale Tonight' : '🔥 Weekly Sprint In Progress';
+        if (partyBadge) {
+          partyBadge.textContent = data.is_sunday_night ? 'Freezes at 12:00 AM' : 'Live Standings';
+          partyBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 animate-pulse';
+        }
+        partyDesc.innerHTML = `Scores freeze tonight at <strong>12:00 AM (midnight IST)</strong>! Current leader: <strong>${escapeHtml(winnerName)}</strong> (${preview.winner.points} pts). Operatives holding #4 (<strong>${escapeHtml(s1)}</strong>) & #5 (<strong>${escapeHtml(s2)}</strong>) at midnight will owe the Paneer Patties Party!`;
+        partyBanner.classList.remove('hidden');
+      }
+
+      if (partyBtn) {
+        partyBtn.innerHTML = '<span>⏳</span><span>Preview Live Stakes</span>';
+        partyBtn.onclick = () => openWeeklyWinnerModal(preview);
+      }
+
+      // Note: We DO NOT auto-trigger the popup here because Sunday ends after 12:00 AM midnight!
     }
   }).catch(err => {
     console.warn('Failed to check weekly achievers:', err);

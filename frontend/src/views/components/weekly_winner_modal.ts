@@ -28,7 +28,7 @@ export function renderWeeklyWinnerModal(): string {
         <!-- Top Badge -->
         <div class="text-center mb-4">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-400 text-xs font-mono font-bold uppercase tracking-widest animate-pulse">
-            <span>✨ NEW SPRINT CYCLE INITIATED ✨</span>
+            <span id="weekly-modal-badge-text">✨ NEW SPRINT CYCLE INITIATED ✨</span>
           </div>
           <h2 id="weekly-modal-week-title" class="text-xs text-muted font-mono uppercase mt-1">Week Concluded</h2>
         </div>
@@ -41,7 +41,7 @@ export function renderWeeklyWinnerModal(): string {
           </div>
 
           <div class="mt-2">
-            <span class="text-[11px] font-mono uppercase tracking-wider text-muted font-semibold">Weekly Champion</span>
+            <span id="weekly-modal-winner-subtitle" class="text-[11px] font-mono uppercase tracking-wider text-muted font-semibold">Weekly Champion</span>
             <h3 id="weekly-modal-winner-name" class="text-3xl md:text-4xl font-black text-amber-400 tracking-tight mt-0.5">
               --
             </h3>
@@ -109,7 +109,25 @@ export function openWeeklyWinnerModal(week: WeekSummary) {
   const sponsorsNames = document.getElementById('weekly-modal-sponsors-names');
   const ranksList = document.getElementById('weekly-modal-ranks-list');
 
-  if (weekTitle) weekTitle.textContent = `${week.week_label}`;
+  const badgeText = document.getElementById('weekly-modal-badge-text');
+  const winnerSubtitle = document.getElementById('weekly-modal-winner-subtitle');
+  const ackBtn = document.getElementById('weekly-modal-acknowledge-btn');
+
+  if (week.is_completed) {
+    if (badgeText) badgeText.textContent = '✨ NEW SPRINT CYCLE INITIATED ✨';
+    if (winnerSubtitle) winnerSubtitle.textContent = '👑 Reigning Weekly Champion';
+    if (ackBtn) ackBtn.textContent = 'Acknowledge & Attack The New Week 🚀';
+  } else {
+    if (badgeText) badgeText.textContent = '⏳ LIVE SPRINT PROJECTION (FREEZES AT MIDNIGHT)';
+    if (winnerSubtitle) winnerSubtitle.textContent = '⚡ Current Sprint Leader';
+    if (ackBtn) ackBtn.textContent = 'Got It — Back To The Grind ⚔️';
+  }
+
+  if (weekTitle) {
+    weekTitle.textContent = week.is_completed 
+      ? `${week.week_label} • Concluded` 
+      : `${week.week_label} • In Progress (Freezes at 12:00 AM)`;
+  }
   
   if (winnerName) {
     winnerName.textContent = week.winner?.display_name || 'Operative';
@@ -123,11 +141,17 @@ export function openWeeklyWinnerModal(week: WeekSummary) {
   const champ = week.winner?.display_name || 'the Champion';
 
   if (partyDesc) {
-    partyDesc.innerHTML = `By decree of the Glazing Sovereign Code, <strong>#4 ${escapeHtml(s1)}</strong> and <strong>#5 ${escapeHtml(s2)}</strong> MUST sponsor a celebratory <strong>Paneer Patties Party</strong> for <strong>${escapeHtml(champ)}</strong>!`;
+    if (week.is_completed) {
+      partyDesc.innerHTML = `By decree of the Glazing Sovereign Code, <strong>#4 ${escapeHtml(s1)}</strong> and <strong>#5 ${escapeHtml(s2)}</strong> MUST sponsor a celebratory <strong>Paneer Patties Party</strong> for <strong>${escapeHtml(champ)}</strong>!`;
+    } else {
+      partyDesc.innerHTML = `<strong>Sprint Finale Live:</strong> Standings freeze tonight at <strong>12:00 AM (midnight IST)</strong>! Operatives finishing at #4 and #5 (currently <strong>${escapeHtml(s1)}</strong> & <strong>${escapeHtml(s2)}</strong>) will owe <strong>${escapeHtml(champ)}</strong> a Paneer Patties Party!`;
+    }
   }
 
   if (sponsorsNames) {
-    sponsorsNames.textContent = `${s1} & ${s2} (Party Duty)`;
+    sponsorsNames.textContent = week.is_completed 
+      ? `${s1} & ${s2} (Party Duty Mandate)`
+      : `${s1} & ${s2} (Currently on Hot Seat)`;
   }
 
   if (ranksList) {

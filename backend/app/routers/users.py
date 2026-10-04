@@ -479,8 +479,8 @@ async def get_weekly_achievers(current_user_id: str = Depends(get_current_user))
     past_weeks = [s for s in summaries if s.is_completed]
     current_week_preview = next((s for s in summaries if s.week_id == current_week_id), None)
 
-    # Latest completed week (or on Sunday/new week if no past weeks, provide current preview)
-    latest_completed_week = past_weeks[0] if past_weeks else current_week_preview
+    # Latest completed week (only weeks that have concluded after Sunday 23:59:59 IST)
+    latest_completed_week = past_weeks[0] if past_weeks else None
 
     return WeeklyAchieversResponse(
         current_week_id=current_week_id,
