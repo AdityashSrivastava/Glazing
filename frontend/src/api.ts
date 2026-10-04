@@ -83,3 +83,42 @@ export async function checkinGym(): Promise<GymStatus> {
   });
 }
 
+export interface WeeklyRankItem {
+  rank: number;
+  id: string;
+  display_name: string;
+  avatar_url?: string | null;
+  points: number;
+  tasks_completed: number;
+  hours_logged: number;
+  party_duty: boolean;
+  status_label: string;
+  is_me: boolean;
+}
+
+export interface WeekSummary {
+  week_id: string;
+  week_label: string;
+  start_date: string;
+  end_date: string;
+  is_completed: boolean;
+  winner?: WeeklyRankItem | null;
+  rankings: WeeklyRankItem[];
+  party_sponsors: string[];
+}
+
+export interface WeeklyAchieversResponse {
+  current_week_id: string;
+  current_week_label: string;
+  is_sunday_night: boolean;
+  seconds_until_midnight_ist: number;
+  latest_completed_week?: WeekSummary | null;
+  past_weeks: WeekSummary[];
+  current_week_preview?: WeekSummary | null;
+}
+
+export async function getWeeklyAchievers(): Promise<WeeklyAchieversResponse> {
+  return apiFetch('/users/weekly-achievers');
+}
+
+

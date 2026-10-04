@@ -53,24 +53,76 @@ export function renderCompleteModal(): string {
             <span class="text-[9px] font-mono uppercase bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-bold border border-blue-500/40">Auto-filled</span>
           </div>
 
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="block text-[11px] font-semibold uppercase text-muted tracking-wider">
-                Actual Hours Dedicated
+          <!-- Visual Time Entry HUD (: format) -->
+          <div class="p-3.5 rounded-xl bg-surface/60 border border-border/80">
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-[11px] font-bold uppercase text-primary tracking-wider flex items-center gap-1.5">
+                <span>⏱️</span> Actual Time Dedicated (HH : MM)
               </label>
-              <span class="text-[10px] text-accent font-mono font-medium">Editable</span>
+              <span id="task-time-display-equiv" class="text-[11px] font-mono font-bold text-accent">1 hr 00 min (1.00h)</span>
             </div>
-            <input 
-              type="number" 
-              id="task-actual-hours" 
-              required 
-              min="0.1" 
-              max="12" 
-              step="0.1" 
-              class="theme-input font-mono text-sm" 
-              placeholder="e.g. 1.0" 
-            />
-            <p id="task-actual-hours-hint" class="text-[10px] text-muted mt-1">Accept the timer duration or enter custom hours worked (0.1h - 12.0h).</p>
+
+            <!-- Digital Clock Display with Neon Colon -->
+            <div class="flex items-center justify-center gap-3 p-3 bg-bg rounded-lg border border-border/70 shadow-inner">
+              
+              <!-- Hours Box -->
+              <div class="flex flex-col items-center">
+                <span class="text-[9px] uppercase font-mono text-muted mb-1 font-semibold tracking-wider">Hours</span>
+                <div class="flex items-center">
+                  <input 
+                    type="number" 
+                    id="task-time-hours" 
+                    min="0" 
+                    max="12" 
+                    value="1" 
+                    class="w-16 h-12 text-center text-2xl font-black font-mono bg-surface rounded-lg border border-border focus:border-accent text-primary focus:outline-none transition-all shadow-sm"
+                  />
+                  <div class="flex flex-col ml-1.5 gap-1">
+                    <button type="button" id="btn-inc-hour" class="w-5 h-5 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-xs font-bold transition-colors cursor-pointer">+</button>
+                    <button type="button" id="btn-dec-hour" class="w-5 h-5 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-xs font-bold transition-colors cursor-pointer">-</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stylized Neon Colon Separator -->
+              <div class="text-3xl font-black text-accent font-mono pt-3 select-none animate-pulse">:</div>
+
+              <!-- Minutes Box -->
+              <div class="flex flex-col items-center">
+                <span class="text-[9px] uppercase font-mono text-muted mb-1 font-semibold tracking-wider">Minutes</span>
+                <div class="flex items-center">
+                  <input 
+                    type="number" 
+                    id="task-time-minutes" 
+                    min="0" 
+                    max="59" 
+                    value="0" 
+                    class="w-16 h-12 text-center text-2xl font-black font-mono bg-surface rounded-lg border border-border focus:border-accent text-primary focus:outline-none transition-all shadow-sm"
+                  />
+                  <div class="flex flex-col ml-1.5 gap-1">
+                    <button type="button" id="btn-inc-min" class="w-5 h-5 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-xs font-bold transition-colors cursor-pointer">+</button>
+                    <button type="button" id="btn-dec-min" class="w-5 h-5 flex items-center justify-center rounded bg-surface hover:bg-border text-muted hover:text-primary text-xs font-bold transition-colors cursor-pointer">-</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Quick Add & Presets -->
+            <div class="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-border/40">
+              <span class="text-[10px] text-muted font-mono uppercase mr-0.5 font-medium">Quick:</span>
+              <button type="button" class="time-quick-add px-2 py-0.5 rounded bg-surface hover:bg-accent/10 hover:text-accent border border-border text-[11px] font-mono text-muted transition-colors cursor-pointer" data-mins="15">+15m</button>
+              <button type="button" class="time-quick-add px-2 py-0.5 rounded bg-surface hover:bg-accent/10 hover:text-accent border border-border text-[11px] font-mono text-muted transition-colors cursor-pointer" data-mins="30">+30m</button>
+              <button type="button" class="time-quick-add px-2 py-0.5 rounded bg-surface hover:bg-accent/10 hover:text-accent border border-border text-[11px] font-mono text-muted transition-colors cursor-pointer" data-mins="60">+1h</button>
+              <div class="h-3 w-[1px] bg-border mx-1"></div>
+              <button type="button" class="time-preset-set px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 text-[10px] font-mono font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="0" data-m="25">25m Pomo</button>
+              <button type="button" class="time-preset-set px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 text-[10px] font-mono font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="0" data-m="50">50m Deep</button>
+              <button type="button" class="time-preset-set px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 text-[10px] font-mono font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="1" data-m="15">1h 15m</button>
+              <button type="button" class="time-preset-set px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 text-[10px] font-mono font-semibold hover:bg-accent/20 transition-colors cursor-pointer" data-h="2" data-m="0">2h 00m</button>
+            </div>
+
+            <!-- Synchronized Hidden Input for API payload -->
+            <input type="hidden" id="task-actual-hours" name="actual_hours" value="1.0" />
           </div>
 
           <!-- Proof of Work Multi-Modal Ingestion -->
@@ -221,23 +273,36 @@ export function openCompleteTaskModal(params: CompleteModalParams) {
   }
 
   const timerMins = params.trackedTimerMinutes || 0;
-  const timerHours = params.trackedTimerHours || (timerMins > 0 ? Math.round((timerMins / 60) * 10) / 10 : 0);
+  let initHours = 1;
+  let initMins = 0;
 
-  if (timerMins > 0 || timerHours > 0) {
+  if (timerMins > 0) {
     if (timerBanner) timerBanner.classList.remove('hidden');
-    if (timerText) timerText.textContent = `${timerMins} mins (~${timerHours} hrs)`;
-    if (actInput) {
-      actInput.value = String(Math.max(0.1, timerHours));
-    }
+    initHours = Math.floor(timerMins / 60);
+    initMins = timerMins % 60;
+    if (timerText) timerText.textContent = `${initHours}h ${String(initMins).padStart(2, '0')}m (${timerMins} mins timer feed)`;
   } else {
     if (timerBanner) timerBanner.classList.add('hidden');
-    if (actInput) {
-      actInput.value = String(params.estHours || 1.0);
-    }
+    const totalEstMins = Math.round((params.estHours || 1.0) * 60);
+    initHours = Math.floor(totalEstMins / 60);
+    initMins = totalEstMins % 60;
   }
 
+  // Populate digital inputs
+  const timeHoursInput = document.getElementById('task-time-hours') as HTMLInputElement;
+  const timeMinsInput = document.getElementById('task-time-minutes') as HTMLInputElement;
+  const timeEquivDisplay = document.getElementById('task-time-display-equiv');
+
+  if (timeHoursInput) timeHoursInput.value = String(initHours);
+  if (timeMinsInput) timeMinsInput.value = String(initMins);
+
+  const decHours = Math.round((initHours + (initMins / 60.0)) * 100) / 100;
   if (actInput) {
+    actInput.value = String(Math.max(0.05, decHours));
     actInput.dispatchEvent(new Event('input'));
+  }
+  if (timeEquivDisplay) {
+    timeEquivDisplay.textContent = `${initHours} hr ${String(initMins).padStart(2, '0')} min (${decHours.toFixed(2)}h)`;
   }
 
   modal.classList.remove('hidden');
@@ -316,6 +381,111 @@ export function setupCompleteModalLogic(onSuccessCallback?: () => void | Promise
       projProofPts.className = hasProof ? 'text-emerald-400 font-semibold' : 'text-muted';
     }
   };
+
+  const timeHoursInput = document.getElementById('task-time-hours') as HTMLInputElement;
+  const timeMinsInput = document.getElementById('task-time-minutes') as HTMLInputElement;
+  const timeEquivDisplay = document.getElementById('task-time-display-equiv');
+
+  const setDigitalTime = (h: number, m: number) => {
+    let hours = Math.max(0, Math.min(12, Math.floor(isNaN(h) ? 0 : h)));
+    let minutes = Math.max(0, Math.min(59, Math.floor(isNaN(m) ? 0 : m)));
+    
+    // Minimal safety bound
+    if (hours === 0 && minutes < 3) {
+      minutes = 5;
+    }
+
+    if (timeHoursInput) timeHoursInput.value = String(hours);
+    if (timeMinsInput) timeMinsInput.value = String(minutes);
+
+    const totalDec = Math.round((hours + (minutes / 60.0)) * 100) / 100;
+    if (actualHoursInput) {
+      actualHoursInput.value = String(Math.max(0.05, totalDec));
+    }
+    if (timeEquivDisplay) {
+      timeEquivDisplay.textContent = `${hours} hr ${String(minutes).padStart(2, '0')} min (${totalDec.toFixed(2)}h)`;
+    }
+    updateProjection();
+  };
+
+  if (timeHoursInput) {
+    timeHoursInput.addEventListener('input', () => {
+      setDigitalTime(parseInt(timeHoursInput.value) || 0, parseInt(timeMinsInput?.value || '0') || 0);
+    });
+  }
+
+  if (timeMinsInput) {
+    timeMinsInput.addEventListener('input', () => {
+      let m = parseInt(timeMinsInput.value) || 0;
+      let h = parseInt(timeHoursInput?.value || '0') || 0;
+      if (m >= 60) {
+        h += Math.floor(m / 60);
+        m = m % 60;
+      }
+      setDigitalTime(h, m);
+    });
+  }
+
+  // Stepper buttons
+  document.getElementById('btn-inc-hour')?.addEventListener('click', () => {
+    const curH = parseInt(timeHoursInput?.value || '0') || 0;
+    const curM = parseInt(timeMinsInput?.value || '0') || 0;
+    setDigitalTime(curH + 1, curM);
+  });
+
+  document.getElementById('btn-dec-hour')?.addEventListener('click', () => {
+    const curH = parseInt(timeHoursInput?.value || '0') || 0;
+    const curM = parseInt(timeMinsInput?.value || '0') || 0;
+    setDigitalTime(Math.max(0, curH - 1), curM);
+  });
+
+  document.getElementById('btn-inc-min')?.addEventListener('click', () => {
+    const curH = parseInt(timeHoursInput?.value || '0') || 0;
+    const curM = parseInt(timeMinsInput?.value || '0') || 0;
+    let nextM = curM + 5;
+    let nextH = curH;
+    if (nextM >= 60) {
+      nextH += 1;
+      nextM -= 60;
+    }
+    setDigitalTime(nextH, nextM);
+  });
+
+  document.getElementById('btn-dec-min')?.addEventListener('click', () => {
+    const curH = parseInt(timeHoursInput?.value || '0') || 0;
+    const curM = parseInt(timeMinsInput?.value || '0') || 0;
+    let nextM = curM - 5;
+    let nextH = curH;
+    if (nextM < 0) {
+      if (nextH > 0) {
+        nextH -= 1;
+        nextM += 60;
+      } else {
+        nextM = 0;
+      }
+    }
+    setDigitalTime(nextH, nextM);
+  });
+
+  // Quick Add buttons (+15m, +30m, +1h)
+  document.querySelectorAll('.time-quick-add').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const minsToAdd = parseInt((e.currentTarget as HTMLElement).getAttribute('data-mins') || '15') || 15;
+      const curH = parseInt(timeHoursInput?.value || '0') || 0;
+      const curM = parseInt(timeMinsInput?.value || '0') || 0;
+      const totalM = (curH * 60) + curM + minsToAdd;
+      setDigitalTime(Math.floor(totalM / 60), totalM % 60);
+    });
+  });
+
+  // Presets (25m, 50m, 1h 15m, 2h 00m)
+  document.querySelectorAll('.time-preset-set').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const h = parseInt((e.currentTarget as HTMLElement).getAttribute('data-h') || '0') || 0;
+      const m = parseInt((e.currentTarget as HTMLElement).getAttribute('data-m') || '0') || 0;
+      setDigitalTime(h, m);
+    });
+  });
 
   if (actualHoursInput) {
     actualHoursInput.oninput = updateProjection;

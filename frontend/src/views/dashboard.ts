@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
-import { apiFetch, getGymStatus, checkinGym } from '../api';
+import { apiFetch, getGymStatus, checkinGym, getWeeklyAchievers } from '../api';
 import { renderCompleteModal, openCompleteTaskModal, setupCompleteModalLogic } from './components/complete_modal';
+import { renderWeeklyWinnerModal, setupWeeklyWinnerModalLogic, openWeeklyWinnerModal } from './components/weekly_winner_modal';
 import { renderNavbar, setupNavbarLogic, showNotification } from './components/navbar';
 import { escapeHtml, safeUrl } from '../utils';
 
@@ -141,6 +142,30 @@ export function renderDashboard(): string {
           </div>
         </div>
 
+        <!-- Weekly Achiever & Paneer Patties Party Protocol Banner -->
+        <div id="dashboard-party-banner" class="hidden mb-8 theme-card p-4 md:p-5 border border-orange-500/30 bg-gradient-to-r from-orange-500/[0.08] via-surface to-surface flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-xl flex-shrink-0 select-none">
+              🍔
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-orange-400 tracking-wide font-mono uppercase">Paneer Patties Party Protocol</h3>
+                <span id="dashboard-party-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/40">
+                  Weekly Mandate
+                </span>
+              </div>
+              <p id="dashboard-party-desc" class="text-xs text-body mt-0.5">
+                Loading weekly mandate...
+              </p>
+            </div>
+          </div>
+          <button id="dashboard-open-party-modal-btn" class="px-4 py-2 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 font-mono text-xs font-bold border border-orange-500/40 transition-colors cursor-pointer whitespace-nowrap self-start sm:self-auto flex items-center gap-2">
+            <span>🎉</span>
+            <span>View Debrief</span>
+          </button>
+        </div>
+
         <!-- Daily Habit Checkpoint: Gym Protocol -->
         <div class="mb-8 theme-card p-4 md:p-5 border border-emerald-500/30 bg-gradient-to-r from-emerald-500/[0.08] via-surface to-surface flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div class="flex items-center gap-3.5">
@@ -257,6 +282,7 @@ export function renderDashboard(): string {
 
       <!-- Modals -->
       ${renderCompleteModal()}
+      ${renderWeeklyWinnerModal()}
       
       <!-- Inline Quick Bounty Staking Modal -->
       <div id="quick-bounty-modal" class="fixed inset-0 bg-bg/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-opacity duration-200">
@@ -318,6 +344,7 @@ export function renderDashboard(): string {
 
 export function setupDashboardLogic(navigateFn: (route: string) => void) {
   setupNavbarLogic(navigateFn);
+  setupWeeklyWinnerModalLogic();
 
   const refreshBtn = document.getElementById('refresh-feed-btn') as HTMLButtonElement;
   const feedContainer = document.getElementById('feed-container') as HTMLDivElement;
@@ -338,7 +365,40 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
   // 1. Initial Load
   initDashboard();
 
-  // 2. Event Listeners for Filters & Search
+  // 2. Weekly Achiever & Paneer Patties Party Protocol Check
+  getWeeklyAchievers().then(data => {
+    const latest = data?.latest_completed_week;
+    if (latest && latest.winner) {
+      const partyBanner = document.getElementById('dashboard-party-banner');
+      const partyDesc = document.getElementById('dashboard-party-desc');
+      const partyBtn = document.getElementById('dashboard-open-party-modal-btn');
+
+      const s1 = latest.party_sponsors?.[0] || 'Rank 4';
+      const s2 = latest.party_sponsors?.[1] || 'Rank 5';
+      const winnerName = latest.winner.display_name;
+
+      if (partyBanner && partyDesc) {
+        partyDesc.innerHTML = `Rank 4 (<strong>${escapeHtml(s1)}</strong>) & Rank 5 (<strong>${escapeHtml(s2)}</strong>) owe champion <strong>${escapeHtml(winnerName)}</strong> a Paneer Patties Party!`;
+        partyBanner.classList.remove('hidden');
+      }
+
+      if (partyBtn) {
+        partyBtn.onclick = () => openWeeklyWinnerModal(latest);
+      }
+
+      // Automatically show celebratory popup on new week if not seen yet
+      const seenKey = `glazing_seen_week_winner_${latest.week_id}`;
+      if (!localStorage.getItem(seenKey)) {
+        setTimeout(() => {
+          openWeeklyWinnerModal(latest);
+        }, 600);
+      }
+    }
+  }).catch(err => {
+    console.warn('Failed to check weekly achievers:', err);
+  });
+
+  // 3. Event Listeners for Filters & Search
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       searchQuery = (e.target as HTMLInputElement).value.trim().toLowerCase();

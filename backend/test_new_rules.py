@@ -81,8 +81,31 @@ def test_gym_router():
     assert "points_awarded" in data
     assert data["points_awarded"] == 5
 
+def test_weekly_achievers():
+    print("Testing weekly achievers endpoint...")
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.auth import get_current_user
+
+    client = TestClient(app)
+    app.dependency_overrides[get_current_user] = lambda: "b0bd077c-a4f6-49a0-b5ee-06e1cc8429ea"
+    
+    res = client.get("/api/users/weekly-achievers")
+    print("  [PASS] GET /api/users/weekly-achievers response status:", res.status_code)
+    assert res.status_code == 200
+    data = res.json()
+    assert "current_week_id" in data
+    assert "latest_completed_week" in data
+    lw = data.get("latest_completed_week")
+    assert lw is not None
+    assert "winner" in lw
+    assert "party_sponsors" in lw
+    print(f"  [PASS] Winner: {lw['winner']['display_name']} with {lw['winner']['points']} pts")
+    print(f"  [PASS] Party Sponsors (ranks 4 & 5): {lw['party_sponsors']}")
+
 if __name__ == "__main__":
     test_proof_analysis()
     test_points_math()
     test_gym_router()
+    test_weekly_achievers()
     print("\nALL RULE TESTS PASSED SUCCESSFULLY!")

@@ -172,3 +172,43 @@ select:-webkit-autofill {
   caret-color: var(--text-primary) !important;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* Confetti & Celebration Animations for Weekly Achievers */
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  opacity: 0.75;
+  animation: confettiFall 4s linear infinite;
+  border-radius: 2px;
+}
+
+.c1 { left: 10%; background-color: #fbbf24; animation-delay: 0s; transform: rotate(15deg); }
+.c2 { left: 20%; background-color: #f97316; animation-delay: 1.2s; transform: rotate(45deg); }
+.c3 { left: 30%; background-color: #635bff; animation-delay: 0.5s; transform: rotate(30deg); }
+.c4 { left: 40%; background-color: #10b981; animation-delay: 2.1s; transform: rotate(60deg); }
+.c5 { left: 50%; background-color: #ec4899; animation-delay: 0.8s; transform: rotate(25deg); }
+.c6 { left: 60%; background-color: #00d4ff; animation-delay: 1.8s; transform: rotate(80deg); }
+.c7 { left: 70%; background-color: #fbbf24; animation-delay: 2.5s; transform: rotate(10deg); }
+.c8 { left: 80%; background-color: #f97316; animation-delay: 0.3s; transform: rotate(50deg); }
+.c9 { left: 88%; background-color: #a855f7; animation-delay: 1.5s; transform: rotate(35deg); }
+.c10 { left: 95%; background-color: #10b981; animation-delay: 2.8s; transform: rotate(70deg); }
+.c11 { left: 15%; background-color: #ec4899; animation-delay: 3.1s; transform: rotate(40deg); }
+.c12 { left: 75%; background-color: #635bff; animation-delay: 3.5s; transform: rotate(15deg); }
+
+@keyframes confettiFall {
+  0% {
+    top: -20px;
+    transform: rotate(0deg) scale(0.8);
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    top: 105%;
+    transform: rotate(720deg) scale(1.2);
+    opacity: 0;
+  }
+}
+

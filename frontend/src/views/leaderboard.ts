@@ -1,6 +1,7 @@
-import { apiFetch } from '../api';
+import { apiFetch, getWeeklyAchievers } from '../api';
 import { renderNavbar, setupNavbarLogic } from './components/navbar';
 import { escapeHtml } from '../utils';
+import { renderWeeklyWinnerModal, setupWeeklyWinnerModalLogic, openWeeklyWinnerModal } from './components/weekly_winner_modal';
 
 export function renderLeaderboard(): string {
   return `
@@ -40,14 +41,17 @@ export function renderLeaderboard(): string {
         <!-- Timeframe Switcher Tabs -->
         <div class="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-border/70">
           <div class="flex items-center gap-2" id="timeframe-buttons">
-            <button class="timeframe-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-accent text-white shadow-sm" data-tf="daily">
+            <button class="timeframe-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-accent text-white shadow-sm cursor-pointer" data-tf="daily">
               <span>☀️</span> Daily Sprint
             </button>
-            <button class="timeframe-btn px-4 py-2 rounded-xl text-xs font-semibold text-muted hover:text-primary transition-all flex items-center gap-2" data-tf="weekly">
+            <button class="timeframe-btn px-4 py-2 rounded-xl text-xs font-semibold text-muted hover:text-primary transition-all flex items-center gap-2 cursor-pointer" data-tf="weekly">
               <span>📅</span> Weekly League
             </button>
-            <button class="timeframe-btn px-4 py-2 rounded-xl text-xs font-semibold text-muted hover:text-primary transition-all flex items-center gap-2" data-tf="all_time">
+            <button class="timeframe-btn px-4 py-2 rounded-xl text-xs font-semibold text-muted hover:text-primary transition-all flex items-center gap-2 cursor-pointer" data-tf="all_time">
               <span>🏆</span> All-Time Pantheon
+            </button>
+            <button class="timeframe-btn px-4 py-2 rounded-xl text-xs font-semibold text-muted hover:text-primary transition-all flex items-center gap-2 cursor-pointer" data-tf="weekly_achievers">
+              <span>🏅</span> Weekly Achievers
             </button>
           </div>
 
@@ -58,50 +62,58 @@ export function renderLeaderboard(): string {
           </div>
         </div>
 
-        <!-- Top 3 Podium Cards -->
-        <div id="podium-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-          <!-- Dynamically populated -->
+        <!-- Standard Leaderboard View (Daily, Weekly, All-Time) -->
+        <div id="standard-leaderboard-view" class="space-y-8">
+          <!-- Top 3 Podium Cards -->
+          <div id="podium-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Current User Position Banner -->
+          <div id="my-standing-banner" class="theme-card p-4 bg-accent/[0.04] border-accent/30 flex items-center justify-between text-xs font-mono hidden">
+            <div class="flex items-center gap-3">
+              <span class="text-lg">🎯</span>
+              <span id="my-standing-text" class="text-body font-medium">Calculating your position...</span>
+            </div>
+            <span id="my-standing-rank" class="px-2.5 py-1 rounded-lg bg-accent text-white font-bold">#--</span>
+          </div>
+
+          <!-- Complete Ranked Operative Table -->
+          <div class="theme-card overflow-hidden p-0 border border-border shadow-sm">
+            <div class="px-6 py-4 border-b border-border/70 flex items-center justify-between">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-accent inline-block"></span>
+                Operative Registry & Telemetry
+              </h3>
+              <span class="text-[10px] font-mono text-muted uppercase">Closed Loop: 5 Operatives</span>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm text-primary">
+                <thead class="text-[11px] uppercase tracking-wider text-muted bg-surface/50 border-b border-border font-semibold font-mono">
+                  <tr>
+                    <th class="px-6 py-3.5">Rank</th>
+                    <th class="px-6 py-3.5">Operative</th>
+                    <th class="px-6 py-3.5">Tier Status</th>
+                    <th class="px-6 py-3.5 text-center">Execution</th>
+                    <th class="px-6 py-3.5 text-right">Points</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboard-tbody" class="divide-y divide-border/40">
+                  <tr>
+                    <td colspan="5" class="px-6 py-16 text-center text-muted data-text animate-pulse">
+                      Synchronizing combat matrix...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
-        <!-- Current User Position Banner -->
-        <div id="my-standing-banner" class="theme-card p-4 bg-accent/[0.04] border-accent/30 flex items-center justify-between text-xs font-mono hidden">
-          <div class="flex items-center gap-3">
-            <span class="text-lg">🎯</span>
-            <span id="my-standing-text" class="text-body font-medium">Calculating your position...</span>
-          </div>
-          <span id="my-standing-rank" class="px-2.5 py-1 rounded-lg bg-accent text-white font-bold">#--</span>
-        </div>
-
-        <!-- Complete Ranked Operative Table -->
-        <div class="theme-card overflow-hidden p-0 border border-border shadow-sm">
-          <div class="px-6 py-4 border-b border-border/70 flex items-center justify-between">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-accent inline-block"></span>
-              Operative Registry & Telemetry
-            </h3>
-            <span class="text-[10px] font-mono text-muted uppercase">Closed Loop: 5 Operatives</span>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-primary">
-              <thead class="text-[11px] uppercase tracking-wider text-muted bg-surface/50 border-b border-border font-semibold font-mono">
-                <tr>
-                  <th class="px-6 py-3.5">Rank</th>
-                  <th class="px-6 py-3.5">Operative</th>
-                  <th class="px-6 py-3.5">Tier Status</th>
-                  <th class="px-6 py-3.5 text-center">Execution</th>
-                  <th class="px-6 py-3.5 text-right">Points</th>
-                </tr>
-              </thead>
-              <tbody id="leaderboard-tbody" class="divide-y divide-border/40">
-                <tr>
-                  <td colspan="5" class="px-6 py-16 text-center text-muted data-text animate-pulse">
-                    Synchronizing combat matrix...
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <!-- Weekly Achievers & Hall of Champions View -->
+        <div id="weekly-achievers-view" class="hidden space-y-8">
+          <!-- Dynamically populated by fetchAndRenderWeeklyAchievers() -->
         </div>
 
         <!-- Dev / Admin System Operations Bar -->
@@ -118,6 +130,9 @@ export function renderLeaderboard(): string {
         </div>
 
       </main>
+
+      <!-- Weekly Winner Celebration Modal Mount -->
+      ${renderWeeklyWinnerModal()}
     </div>
   `;
 }
@@ -128,17 +143,32 @@ let currentRemainingSeconds = 0;
 
 export function setupLeaderboardLogic(navigateFn: (route: string) => void) {
   setupNavbarLogic(navigateFn);
+  setupWeeklyWinnerModalLogic();
 
   // Timeframe Tab Switching
   document.querySelectorAll('.timeframe-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.timeframe-btn').forEach(b => {
-        b.className = 'timeframe-btn px-4 py-2 rounded-xl text-xs font-semibold text-muted hover:text-primary transition-all flex items-center gap-2';
+        b.className = 'timeframe-btn px-4 py-2 rounded-xl text-xs font-semibold text-muted hover:text-primary transition-all flex items-center gap-2 cursor-pointer';
       });
       const target = e.currentTarget as HTMLButtonElement;
-      target.className = 'timeframe-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-accent text-white shadow-sm';
+      target.className = 'timeframe-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-accent text-white shadow-sm cursor-pointer';
       currentTimeframe = target.getAttribute('data-tf') || 'daily';
-      fetchAndRenderLeaderboard();
+
+      const stdView = document.getElementById('standard-leaderboard-view');
+      const weeklyView = document.getElementById('weekly-achievers-view');
+      const fbBadge = document.getElementById('first-blood-badge');
+
+      if (currentTimeframe === 'weekly_achievers') {
+        if (stdView) stdView.classList.add('hidden');
+        if (weeklyView) weeklyView.classList.remove('hidden');
+        if (fbBadge) fbBadge.classList.add('hidden');
+        fetchAndRenderWeeklyAchievers();
+      } else {
+        if (weeklyView) weeklyView.classList.add('hidden');
+        if (stdView) stdView.classList.remove('hidden');
+        fetchAndRenderLeaderboard();
+      }
     });
   });
 
@@ -401,3 +431,171 @@ async function fetchAndRenderLeaderboard() {
     `;
   }
 }
+
+async function fetchAndRenderWeeklyAchievers() {
+  const container = document.getElementById('weekly-achievers-view');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="theme-card p-12 text-center text-muted font-mono animate-pulse">
+      Retrieving weekly achievers and party mandate telemetry...
+    </div>
+  `;
+
+  try {
+    const data = await getWeeklyAchievers();
+    const latest = data.latest_completed_week;
+    const pastWeeks = data.past_weeks || [];
+    const isSunday = data.is_sunday_night;
+
+    const winner = latest?.winner;
+    const s1 = latest?.party_sponsors?.[0] || 'Rank 4';
+    const s2 = latest?.party_sponsors?.[1] || 'Rank 5';
+
+    let heroHtml = '';
+    if (latest && winner) {
+      heroHtml = `
+        <div class="relative overflow-hidden rounded-3xl p-6 md:p-8 bg-gradient-to-br from-amber-400/[0.08] via-surface to-orange-500/[0.05] border border-amber-400/30 shadow-lg">
+          
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-border/60">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-400 border border-amber-400/30 text-[11px] font-mono font-bold uppercase tracking-wider mb-2">
+                <span>👑 ${isSunday ? 'LIVE WEEKLY SPRINT LEADER' : 'REIGNING WEEKLY CHAMPION'}</span>
+              </div>
+              <h3 class="text-3xl md:text-4xl font-extrabold text-primary tracking-tight">
+                ${escapeHtml(winner.display_name)}
+              </h3>
+              <p class="text-xs text-muted font-mono mt-1">
+                ${escapeHtml(latest.week_label)} • ${winner.points} pts scored • ${winner.tasks_completed} tasks • ${winner.hours_logged}h logged
+              </p>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button id="view-celebration-popup-btn" class="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-amber-400/20 cursor-pointer">
+                <span>🎉</span> View Party Mandate Popup
+              </button>
+            </div>
+          </div>
+
+          <!-- Paneer Patties Party Callout Box -->
+          <div class="mt-6 p-4 md:p-5 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+              <span class="text-3xl md:text-4xl select-none">🍔</span>
+              <div>
+                <h4 class="text-xs font-black uppercase tracking-wider text-orange-400 font-mono flex items-center gap-1.5">
+                  <span>PANEER PATTIES PARTY MANDATE</span>
+                </h4>
+                <p class="text-xs text-body font-medium mt-0.5 leading-relaxed">
+                  Rank 4 (<strong>${escapeHtml(s1)}</strong>) & Rank 5 (<strong>${escapeHtml(s2)}</strong>) MUST sponsor a Paneer Patties Party for champion <strong>${escapeHtml(winner.display_name)}</strong>!
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 font-mono text-[11px] px-3 py-1.5 rounded-xl bg-orange-500/20 text-orange-300 border border-orange-500/30 font-bold whitespace-nowrap self-start sm:self-auto">
+              <span>💸 Patties on ${escapeHtml(s1)} & ${escapeHtml(s2)}</span>
+            </div>
+          </div>
+
+          <!-- Standings Accordion -->
+          <div class="mt-6">
+            <div class="text-[11px] font-mono text-muted uppercase mb-2 font-semibold">
+              ${escapeHtml(latest.week_label)} Full Squad Standings:
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              ${latest.rankings.map(r => `
+                <div class="p-3.5 rounded-xl border ${r.rank === 1 ? 'border-amber-400/50 bg-amber-400/[0.04]' : r.party_duty ? 'border-orange-500/40 bg-orange-500/[0.03]' : 'border-border bg-surface'} flex flex-col justify-between">
+                  <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="font-mono font-bold ${r.rank === 1 ? 'text-amber-400' : r.party_duty ? 'text-orange-400' : 'text-muted'}">
+                      ${r.rank === 1 ? '👑 #1' : r.party_duty ? `🍔 #${r.rank}` : `#${r.rank}`}
+                    </span>
+                    <span class="font-mono font-bold text-primary">${r.points} pts</span>
+                  </div>
+                  <div class="font-bold text-sm text-primary truncate">${escapeHtml(r.display_name)}</div>
+                  <div class="mt-2 text-[10px] font-mono ${r.rank === 1 ? 'text-amber-400 font-bold' : r.party_duty ? 'text-orange-400 font-bold animate-pulse' : 'text-muted'}">
+                    ${r.rank === 1 ? 'Free Patties Guest' : r.party_duty ? '💸 Sponsoring Party' : 'Safe'}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+        </div>
+      `;
+    }
+
+    // Historical Archive Cards
+    const weeksToDisplay = pastWeeks.length > 0 ? pastWeeks : (latest ? [latest] : []);
+
+    const archiveHtml = `
+      <div class="theme-card p-6 border border-border">
+        <div class="flex items-center justify-between pb-4 border-b border-border/70 mb-5">
+          <div>
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-accent inline-block"></span>
+              Weekly Champions Archive
+            </h3>
+            <p class="text-[11px] text-muted mt-0.5">Historical records of weekly winners and party duty assignments.</p>
+          </div>
+          <span class="text-[10px] font-mono text-muted uppercase">Closed Loop: 5 Operatives</span>
+        </div>
+
+        <div class="space-y-4">
+          ${weeksToDisplay.map((w, idx) => `
+            <div class="p-4 rounded-2xl bg-surface/60 border border-border/80 hover:border-accent/40 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/30 text-amber-400 flex items-center justify-center text-xl font-bold font-mono shrink-0">
+                  ${idx === 0 ? '👑' : '🏆'}
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h4 class="text-sm font-bold text-primary">${escapeHtml(w.week_label)}</h4>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono ${w.is_completed ? 'bg-accent/10 text-accent' : 'bg-amber-400/15 text-amber-400'} font-semibold">
+                      ${w.is_completed ? 'Concluded' : 'Active Cycle'}
+                    </span>
+                  </div>
+                  <p class="text-xs text-body mt-1">
+                    Champion: <strong class="text-amber-400 font-bold">${escapeHtml(w.winner?.display_name || 'Operative')}</strong> with <strong>${w.winner?.points || 0} pts</strong> (${w.winner?.tasks_completed || 0} tasks, ${w.winner?.hours_logged || 0}h logged)
+                  </p>
+                  <p class="text-[11px] font-mono text-orange-400 mt-0.5">
+                    🍔 Party Duty: <strong>${escapeHtml(w.party_sponsors.join(' & ') || 'Rank 4 & 5')}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 self-end md:self-center">
+                <button class="view-week-detail-btn px-3.5 py-2 rounded-xl border border-border hover:border-accent hover:text-accent text-xs font-mono text-primary transition-colors cursor-pointer" data-week-id="${w.week_id}">
+                  🎉 Launch Debrief
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    container.innerHTML = `
+      ${heroHtml}
+      ${archiveHtml}
+    `;
+
+    // Hook up button to open modal
+    document.getElementById('view-celebration-popup-btn')?.addEventListener('click', () => {
+      if (latest) openWeeklyWinnerModal(latest);
+    });
+
+    document.querySelectorAll('.view-week-detail-btn').forEach(b => {
+      b.addEventListener('click', (e) => {
+        const wid = (e.currentTarget as HTMLElement).getAttribute('data-week-id');
+        const targetWeek = weeksToDisplay.find(w => w.week_id === wid);
+        if (targetWeek) openWeeklyWinnerModal(targetWeek);
+      });
+    });
+
+  } catch (err: any) {
+    container.innerHTML = `
+      <div class="theme-card p-6 text-center text-rose-400 font-mono text-xs">
+        Failed to load weekly achievers: ${escapeHtml(err.message)}
+      </div>
+    `;
+  }
+}
+

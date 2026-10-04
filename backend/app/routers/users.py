@@ -303,6 +303,195 @@ async def get_user_radar(user_id: str, current_user_id: str = Depends(get_curren
 
     return [{"domain": d, "total_points": domain_points[d]} for d in DOMAINS]
 
+class WeeklyRankItem(BaseModel):
+    rank: int
+    id: str
+    display_name: str
+    avatar_url: Optional[str] = None
+    points: int
+    tasks_completed: int
+    hours_logged: float
+    party_duty: bool = False
+    status_label: str
+    is_me: bool = False
+
+class WeekSummary(BaseModel):
+    week_id: str
+    week_label: str
+    start_date: str
+    end_date: str
+    is_completed: bool
+    winner: Optional[WeeklyRankItem] = None
+    rankings: List[WeeklyRankItem] = []
+    party_sponsors: List[str] = []
+
+class WeeklyAchieversResponse(BaseModel):
+    current_week_id: str
+    current_week_label: str
+    is_sunday_night: bool
+    seconds_until_midnight_ist: int
+    latest_completed_week: Optional[WeekSummary] = None
+    past_weeks: List[WeekSummary] = []
+    current_week_preview: Optional[WeekSummary] = None
+
+@router.get("/weekly-achievers", response_model=WeeklyAchieversResponse)
+async def get_weekly_achievers(current_user_id: str = Depends(get_current_user)):
+    """
+    Returns past weekly champions, current sprint standings,
+    and identifies the 4th and 5th placed operatives tasked with sponsoring
+    the Paneer Patties Party for the champion.
+    """
+    now_ist = datetime.now(IST)
+    today_date = now_ist.date()
+
+    # Current week Monday and Sunday in IST
+    current_monday = today_date - timedelta(days=now_ist.weekday())
+    current_sunday = current_monday + timedelta(days=6)
+    current_week_num = current_monday.isocalendar()[1]
+    current_week_id = f"{current_monday.year}-W{current_week_num:02d}"
+    current_week_label = f"Week {current_week_num} ({current_monday.strftime('%b %d')} - {current_sunday.strftime('%b %d, %Y')})"
+
+    tomorrow_midnight_ist = datetime(now_ist.year, now_ist.month, now_ist.day, tzinfo=IST) + timedelta(days=1)
+    seconds_until_midnight = max(0, int((tomorrow_midnight_ist - now_ist).total_seconds()))
+    is_sunday = (now_ist.weekday() == 6)
+
+    # 1. Fetch all seeded squad users
+    users_res = db.table("users").select("id, display_name, avatar_url, total_lifetime_points").execute()
+    users = users_res.data or []
+
+    # 2. Fetch all completed tasks
+    tasks_res = db.table("tasks") \
+        .select("id, user_id, points_earned, actual_hours, completed_at") \
+        .eq("status", "COMPLETED") \
+        .execute()
+    all_completed = tasks_res.data or []
+
+    # 3. Group tasks by ISO calendar week in IST
+    weeks_dict = {}
+
+    for t in all_completed:
+        c_ist = parse_to_ist(t.get("completed_at"))
+        if not c_ist:
+            continue
+        t_monday = c_ist.date() - timedelta(days=c_ist.weekday())
+        w_id = f"{t_monday.year}-W{t_monday.isocalendar()[1]:02d}"
+        
+        if w_id not in weeks_dict:
+            t_sunday = t_monday + timedelta(days=6)
+            w_num = t_monday.isocalendar()[1]
+            weeks_dict[w_id] = {
+                "monday": t_monday,
+                "sunday": t_sunday,
+                "label": f"Week {w_num} ({t_monday.strftime('%b %d')} - {t_sunday.strftime('%b %d, %Y')})",
+                "user_agg": {str(u["id"]): {"points": 0, "count": 0, "hours": 0.0} for u in users}
+            }
+        
+        uid = str(t.get("user_id"))
+        if uid in weeks_dict[w_id]["user_agg"]:
+            weeks_dict[w_id]["user_agg"][uid]["points"] += (t.get("points_earned") or 0)
+            weeks_dict[w_id]["user_agg"][uid]["count"] += 1
+            weeks_dict[w_id]["user_agg"][uid]["hours"] += float(t.get("actual_hours") or 0)
+
+    # Ensure current week is represented
+    if current_week_id not in weeks_dict:
+        weeks_dict[current_week_id] = {
+            "monday": current_monday,
+            "sunday": current_sunday,
+            "label": current_week_label,
+            "user_agg": {str(u["id"]): {"points": 0, "count": 0, "hours": 0.0} for u in users}
+        }
+
+    # 4. Build WeekSummary for each week
+    summaries = []
+    for w_id, w_info in weeks_dict.items():
+        w_monday = w_info["monday"]
+        w_sunday = w_info["sunday"]
+        is_completed = (w_monday < current_monday)
+
+        ranking_list = []
+        for u in users:
+            uid = str(u["id"])
+            st = w_info["user_agg"].get(uid, {"points": 0, "count": 0, "hours": 0.0})
+            ranking_list.append({
+                "id": uid,
+                "display_name": u.get("display_name", "Operative"),
+                "avatar_url": u.get("avatar_url"),
+                "points": st["points"],
+                "tasks_completed": st["count"],
+                "hours_logged": round(st["hours"], 1),
+                "is_me": (uid == str(current_user_id))
+            })
+
+        ranking_list.sort(key=lambda x: (x["points"], x["tasks_completed"], x["hours_logged"]), reverse=True)
+
+        ranked_items: List[WeeklyRankItem] = []
+        party_sponsors: List[str] = []
+
+        for idx, item in enumerate(ranking_list):
+            rank = idx + 1
+            is_duty = False
+            status_label = "Operative"
+
+            if rank == 1:
+                status_label = "👑 Weekly Champion (Patties Guest of Honor)"
+            elif rank == 2:
+                status_label = "🥈 2nd Place (Safe)"
+            elif rank == 3:
+                status_label = "🥉 3rd Place (Safe)"
+            elif rank == 4:
+                is_duty = True
+                status_label = "🍔 Patties Sponsor Duty #1"
+                party_sponsors.append(item["display_name"])
+            elif rank == 5:
+                is_duty = True
+                status_label = "🍔 Patties Sponsor Duty #2"
+                party_sponsors.append(item["display_name"])
+
+            ranked_items.append(WeeklyRankItem(
+                rank=rank,
+                id=item["id"],
+                display_name=item["display_name"],
+                avatar_url=item["avatar_url"],
+                points=item["points"],
+                tasks_completed=item["tasks_completed"],
+                hours_logged=item["hours_logged"],
+                party_duty=is_duty,
+                status_label=status_label,
+                is_me=item["is_me"]
+            ))
+
+        winner = ranked_items[0] if ranked_items else None
+
+        summaries.append(WeekSummary(
+            week_id=w_id,
+            week_label=w_info["label"],
+            start_date=w_monday.isoformat(),
+            end_date=w_sunday.isoformat(),
+            is_completed=is_completed,
+            winner=winner,
+            rankings=ranked_items,
+            party_sponsors=party_sponsors
+        ))
+
+    # Sort weeks descending by start_date
+    summaries.sort(key=lambda x: x.start_date, reverse=True)
+
+    past_weeks = [s for s in summaries if s.is_completed]
+    current_week_preview = next((s for s in summaries if s.week_id == current_week_id), None)
+
+    # Latest completed week (or on Sunday/new week if no past weeks, provide current preview)
+    latest_completed_week = past_weeks[0] if past_weeks else current_week_preview
+
+    return WeeklyAchieversResponse(
+        current_week_id=current_week_id,
+        current_week_label=current_week_label,
+        is_sunday_night=is_sunday,
+        seconds_until_midnight_ist=seconds_until_midnight,
+        latest_completed_week=latest_completed_week,
+        past_weeks=past_weeks,
+        current_week_preview=current_week_preview
+    )
+
 class SetPasswordRequest(BaseModel):
     email: str
     password: str = Field(..., min_length=6, max_length=128)
