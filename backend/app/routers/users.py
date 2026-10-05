@@ -564,7 +564,7 @@ async def resolve_weekly_party(week_id: str, current_user_id: str = Depends(get_
         )
 
     now_iso = datetime.now(timezone.utc).isoformat()
-    resolver_label = winner.display_name if is_winner else f"{user_name} (Admin Override)"
+    resolver_label = winner.display_name
     resolution_task = {
         "user_id": current_user_id,
         "title": f"🍔 [PANEER_PATTIES_RESOLVED] {week_id} - Party Delivered & Enjoyed!",

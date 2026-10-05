@@ -206,6 +206,13 @@ export function setupLeaderboardLogic(navigateFn: (route: string) => void) {
     });
   }
 
+  // Real-time synchronization when party is resolved via modal or dashboard
+  window.addEventListener('weekly-party-resolved', () => {
+    if (currentTimeframe === 'weekly_achievers') {
+      fetchAndRenderWeeklyAchievers();
+    }
+  });
+
   fetchAndRenderLeaderboard();
 }
 
