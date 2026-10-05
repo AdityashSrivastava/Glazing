@@ -456,10 +456,8 @@ async function fetchAndRenderWeeklyAchievers() {
     const isCompleted = activeOrLatest?.is_completed || false;
     const isResolved = Boolean(activeOrLatest?.party_resolved);
 
-    // Permission checks
-    const myRank = activeOrLatest?.rankings?.find(r => r.is_me);
-    const isAdmin = myRank?.display_name?.toLowerCase() === 'adityash';
-    const canResolveHero = Boolean(isCompleted && !isResolved && (winner?.is_me || isAdmin));
+    // Permission check: only the weekly champion can confirm receipt!
+    const canResolveHero = Boolean(isCompleted && !isResolved && winner?.is_me);
 
     let heroHtml = '';
     if (activeOrLatest && winner) {
@@ -621,7 +619,7 @@ async function fetchAndRenderWeeklyAchievers() {
               No previous weeks archived yet. The current week concludes and archives tonight after 12:00 AM (midnight IST).
             </div>
           ` : weeksToDisplay.map((w, idx) => {
-            const canResolvePast = Boolean(w.is_completed && !w.party_resolved && (w.winner?.is_me || isAdmin));
+            const canResolvePast = Boolean(w.is_completed && !w.party_resolved && w.winner?.is_me);
             return `
               <div class="p-4 rounded-2xl bg-surface/60 border border-border/80 hover:border-accent/40 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div class="flex items-start gap-4">

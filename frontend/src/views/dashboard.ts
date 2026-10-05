@@ -409,11 +409,8 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
         partyBtn.onclick = () => openWeeklyWinnerModal(latest);
       }
 
-      // Check if current user is the champion or admin
-      const isWinner = Boolean(latest.winner?.is_me);
-      const myRank = latest.rankings?.find(r => r.is_me);
-      const isAdmin = myRank?.display_name?.toLowerCase() === 'adityash';
-      const canResolve = isWinner || isAdmin;
+      // Check if current user is the champion (only the winner can confirm receipt!)
+      const canResolve = Boolean(latest.winner?.is_me);
 
       if (claimBtn) {
         if (canResolve) {

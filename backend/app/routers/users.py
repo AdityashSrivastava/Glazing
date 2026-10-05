@@ -544,15 +544,10 @@ async def resolve_weekly_party(week_id: str, current_user_id: str = Depends(get_
     if not winner:
         raise HTTPException(status_code=400, detail=f"No winner found for {week_id}")
 
-    # Check caller info
-    user_res = db.table("users").select("id, display_name").eq("id", current_user_id).execute()
-    user_data = user_res.data[0] if user_res.data else {}
-    user_name = user_data.get("display_name", "")
-
+    # Only the champion who won the week can confirm receiving the party
     is_winner = (str(winner.id) == str(current_user_id))
-    is_admin = (user_name.lower() == "adityash")
 
-    if not is_winner and not is_admin:
+    if not is_winner:
         raise HTTPException(
             status_code=403, 
             detail=f"Only the weekly champion ({winner.display_name}) can confirm receiving the Paneer Patties Party!"

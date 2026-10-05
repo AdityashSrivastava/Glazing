@@ -225,11 +225,8 @@ export function openWeeklyWinnerModal(week: WeekSummary) {
       sponsorsNames.className = 'font-bold text-orange-300';
     }
 
-    // Check if the viewer is authorized to resolve (champion or admin)
-    const isWinner = Boolean(week.winner?.is_me);
-    const myRank = week.rankings?.find(r => r.is_me);
-    const isAdmin = myRank?.display_name?.toLowerCase() === 'adityash';
-    const canResolve = week.is_completed && (isWinner || isAdmin);
+    // Check if the viewer is the champion (only the winner can confirm receipt!)
+    const canResolve = Boolean(week.is_completed && week.winner?.is_me);
 
     if (canResolve && winnerActionBox && claimPartyBtn) {
       winnerActionBox.classList.remove('hidden');
