@@ -1,4 +1,6 @@
 import type { WeekSummary } from '../../api';
+import { resolveWeeklyParty } from '../../api';
+import { showNotification } from './navbar';
 import { escapeHtml } from '../../utils';
 
 export function renderWeeklyWinnerModal(): string {
@@ -23,7 +25,7 @@ export function renderWeeklyWinnerModal(): string {
 
       <div class="theme-card w-full max-w-xl relative z-10 animate-in fade-in zoom-in-95 duration-300 border-amber-400/50 shadow-[0_0_50px_rgba(251,191,36,0.25)] bg-[#0d0d12] p-6 md:p-8 max-h-[90vh] overflow-y-auto">
         
-        <button id="close-weekly-modal-btn" type="button" class="absolute top-4 right-4 text-muted hover:text-primary transition-colors text-2xl leading-none">&times;</button>
+        <button id="close-weekly-modal-btn" type="button" class="absolute top-4 right-4 text-muted hover:text-primary transition-colors text-2xl leading-none cursor-pointer">&times;</button>
 
         <!-- Top Badge -->
         <div class="text-center mb-4">
@@ -52,13 +54,16 @@ export function renderWeeklyWinnerModal(): string {
         </div>
 
         <!-- The Paneer Patties Party Mandate Banner -->
-        <div class="my-5 p-4 rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/15 border border-orange-500/40 shadow-lg relative overflow-hidden">
+        <div id="weekly-modal-mandate-card" class="my-5 p-4 rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/15 border border-orange-500/40 shadow-lg relative overflow-hidden transition-all duration-300">
           <div class="flex items-center gap-3">
-            <div class="text-3xl select-none">🍔</div>
+            <div id="weekly-modal-mandate-icon" class="text-3xl select-none">🍔</div>
             <div class="flex-1">
-              <h4 class="text-xs font-black uppercase tracking-wider text-orange-400 font-mono flex items-center gap-1.5">
-                <span>PANEER PATTIES PARTY MANDATE</span>
-              </h4>
+              <div class="flex items-center gap-2">
+                <h4 id="weekly-modal-mandate-title" class="text-xs font-black uppercase tracking-wider text-orange-400 font-mono flex items-center gap-1.5">
+                  <span>PANEER PATTIES PARTY MANDATE</span>
+                </h4>
+                <span id="weekly-modal-mandate-badge" class="hidden text-[10px] font-mono font-bold px-2 py-0.5 rounded-full"></span>
+              </div>
               <p id="weekly-modal-party-desc" class="text-xs text-body font-medium mt-1 leading-relaxed">
                 By Glazing Sovereign Rule, Rank 4 & Rank 5 must sponsor a Paneer Patties Party for the champion!
               </p>
@@ -66,8 +71,19 @@ export function renderWeeklyWinnerModal(): string {
           </div>
           
           <div id="weekly-modal-sponsors-badge" class="mt-3 pt-2.5 border-t border-orange-500/30 flex items-center justify-between text-xs font-mono">
-            <span class="text-muted text-[11px]">Sponsors on Party Duty:</span>
+            <span id="weekly-modal-sponsors-label" class="text-muted text-[11px]">Sponsors on Party Duty:</span>
             <span id="weekly-modal-sponsors-names" class="font-bold text-orange-300">--</span>
+          </div>
+
+          <!-- Winner Action Box: I Got the Party! -->
+          <div id="weekly-modal-winner-action-box" class="hidden mt-3 pt-3 border-t border-orange-500/30 flex items-center justify-between gap-3">
+            <div class="text-[11px] font-mono text-muted">
+              Received your party feast from the sponsors?
+            </div>
+            <button id="weekly-modal-claim-party-btn" type="button" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold shadow-md shadow-emerald-500/20 border border-emerald-400 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95">
+              <span>🍔</span>
+              <span>I Got the Party!</span>
+            </button>
           </div>
         </div>
 
@@ -84,7 +100,7 @@ export function renderWeeklyWinnerModal(): string {
 
         <!-- Action Button -->
         <div class="flex flex-col sm:flex-row gap-3">
-          <button id="weekly-modal-acknowledge-btn" type="button" class="btn-primary flex-1 py-3 text-sm font-bold shadow-md hover:shadow-amber-400/20">
+          <button id="weekly-modal-acknowledge-btn" type="button" class="btn-primary flex-1 py-3 text-sm font-bold shadow-md hover:shadow-amber-400/20 cursor-pointer">
             Acknowledge & Attack The New Week 🚀
           </button>
         </div>
@@ -107,14 +123,26 @@ export function openWeeklyWinnerModal(week: WeekSummary) {
   const winnerStats = document.getElementById('weekly-modal-winner-stats');
   const partyDesc = document.getElementById('weekly-modal-party-desc');
   const sponsorsNames = document.getElementById('weekly-modal-sponsors-names');
+  const sponsorsLabel = document.getElementById('weekly-modal-sponsors-label');
   const ranksList = document.getElementById('weekly-modal-ranks-list');
 
   const badgeText = document.getElementById('weekly-modal-badge-text');
   const winnerSubtitle = document.getElementById('weekly-modal-winner-subtitle');
   const ackBtn = document.getElementById('weekly-modal-acknowledge-btn');
 
+  const mandateCard = document.getElementById('weekly-modal-mandate-card');
+  const mandateIcon = document.getElementById('weekly-modal-mandate-icon');
+  const mandateTitle = document.getElementById('weekly-modal-mandate-title');
+  const mandateBadge = document.getElementById('weekly-modal-mandate-badge');
+  const winnerActionBox = document.getElementById('weekly-modal-winner-action-box');
+  const claimPartyBtn = document.getElementById('weekly-modal-claim-party-btn');
+
+  const isResolved = Boolean(week.party_resolved);
+
   if (week.is_completed) {
-    if (badgeText) badgeText.textContent = '✨ NEW SPRINT CYCLE INITIATED ✨';
+    if (badgeText) {
+      badgeText.textContent = isResolved ? '✨ SPRINT CONCLUDED • PARTY FULFILLED ✨' : '✨ NEW SPRINT CYCLE INITIATED ✨';
+    }
     if (winnerSubtitle) winnerSubtitle.textContent = '👑 Reigning Weekly Champion';
     if (ackBtn) ackBtn.textContent = 'Acknowledge & Attack The New Week 🚀';
   } else {
@@ -140,18 +168,101 @@ export function openWeeklyWinnerModal(week: WeekSummary) {
   const s2 = week.party_sponsors[1] || 'Rank 5';
   const champ = week.winner?.display_name || 'the Champion';
 
-  if (partyDesc) {
-    if (week.is_completed) {
-      partyDesc.innerHTML = `By decree of the Glazing Sovereign Code, <strong>#4 ${escapeHtml(s1)}</strong> and <strong>#5 ${escapeHtml(s2)}</strong> MUST sponsor a celebratory <strong>Paneer Patties Party</strong> for <strong>${escapeHtml(champ)}</strong>!`;
-    } else {
-      partyDesc.innerHTML = `<strong>Sprint Finale Live:</strong> Standings freeze tonight at <strong>12:00 AM (midnight IST)</strong>! Operatives finishing at #4 and #5 (currently <strong>${escapeHtml(s1)}</strong> & <strong>${escapeHtml(s2)}</strong>) will owe <strong>${escapeHtml(champ)}</strong> a Paneer Patties Party!`;
+  if (isResolved) {
+    // Mandate is officially fulfilled!
+    if (mandateCard) {
+      mandateCard.className = 'my-5 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border border-emerald-500/40 shadow-lg relative overflow-hidden transition-all duration-300';
     }
-  }
+    if (mandateIcon) mandateIcon.textContent = '✅';
+    if (mandateTitle) {
+      mandateTitle.textContent = 'PANEER PATTIES PARTY MANDATE FULFILLED';
+      mandateTitle.className = 'text-xs font-black uppercase tracking-wider text-emerald-400 font-mono flex items-center gap-1.5';
+    }
+    if (mandateBadge) {
+      mandateBadge.classList.remove('hidden');
+      mandateBadge.textContent = 'Fulfilled & Archived';
+      mandateBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+    }
+    if (partyDesc) {
+      partyDesc.innerHTML = `Champion <strong>${escapeHtml(champ)}</strong> confirmed receiving the celebratory Paneer Patties Party from <strong>${escapeHtml(s1)} & ${escapeHtml(s2)}</strong>! The sovereign mandate was honored in full. 🎉`;
+    }
+    if (sponsorsLabel) sponsorsLabel.textContent = 'Fulfilled by Sponsors:';
+    if (sponsorsNames) {
+      sponsorsNames.textContent = `${s1} & ${s2} (Delivered 🍔)`;
+      sponsorsNames.className = 'font-bold text-emerald-300';
+    }
+    if (winnerActionBox) winnerActionBox.classList.add('hidden');
 
-  if (sponsorsNames) {
-    sponsorsNames.textContent = week.is_completed 
-      ? `${s1} & ${s2} (Party Duty Mandate)`
-      : `${s1} & ${s2} (Currently on Hot Seat)`;
+  } else {
+    // Mandate is pending delivery or live
+    if (mandateCard) {
+      mandateCard.className = 'my-5 p-4 rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/15 border border-orange-500/40 shadow-lg relative overflow-hidden transition-all duration-300';
+    }
+    if (mandateIcon) mandateIcon.textContent = '🍔';
+    if (mandateTitle) {
+      mandateTitle.textContent = 'PANEER PATTIES PARTY MANDATE';
+      mandateTitle.className = 'text-xs font-black uppercase tracking-wider text-orange-400 font-mono flex items-center gap-1.5';
+    }
+    if (mandateBadge) {
+      mandateBadge.classList.remove('hidden');
+      mandateBadge.textContent = week.is_completed ? 'Pending Delivery' : 'Live Hot Seat';
+      mandateBadge.className = week.is_completed 
+        ? 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/40 animate-pulse'
+        : 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40';
+    }
+    if (partyDesc) {
+      if (week.is_completed) {
+        partyDesc.innerHTML = `By decree of the Glazing Sovereign Code, <strong>#4 ${escapeHtml(s1)}</strong> and <strong>#5 ${escapeHtml(s2)}</strong> MUST sponsor a celebratory <strong>Paneer Patties Party</strong> for <strong>${escapeHtml(champ)}</strong>!`;
+      } else {
+        partyDesc.innerHTML = `<strong>Sprint Finale Live:</strong> Standings freeze tonight at <strong>12:00 AM (midnight IST)</strong>! Operatives finishing at #4 and #5 (currently <strong>${escapeHtml(s1)}</strong> & <strong>${escapeHtml(s2)}</strong>) will owe <strong>${escapeHtml(champ)}</strong> a Paneer Patties Party!`;
+      }
+    }
+    if (sponsorsLabel) sponsorsLabel.textContent = week.is_completed ? 'Sponsors on Party Duty:' : 'Currently on Hot Seat:';
+    if (sponsorsNames) {
+      sponsorsNames.textContent = week.is_completed 
+        ? `${s1} & ${s2} (Party Duty Mandate)`
+        : `${s1} & ${s2} (Currently on Hot Seat)`;
+      sponsorsNames.className = 'font-bold text-orange-300';
+    }
+
+    // Check if the viewer is authorized to resolve (champion or admin)
+    const isWinner = Boolean(week.winner?.is_me);
+    const myRank = week.rankings?.find(r => r.is_me);
+    const isAdmin = myRank?.display_name?.toLowerCase() === 'adityash';
+    const canResolve = week.is_completed && (isWinner || isAdmin);
+
+    if (canResolve && winnerActionBox && claimPartyBtn) {
+      winnerActionBox.classList.remove('hidden');
+      claimPartyBtn.removeAttribute('disabled');
+      claimPartyBtn.innerHTML = '<span>🍔</span><span>I Got the Party!</span>';
+
+      claimPartyBtn.onclick = async () => {
+        const confirmed = window.confirm(`Confirm that you received your Paneer Patties Party from ${s1} & ${s2}?\n\nThis will fulfill the mandate across the squad and archive it.`);
+        if (!confirmed) return;
+
+        claimPartyBtn.setAttribute('disabled', 'true');
+        claimPartyBtn.innerHTML = '<span>⏳</span><span>Confirming...</span>';
+
+        try {
+          await resolveWeeklyParty(week.week_id);
+          week.party_resolved = true;
+          week.party_resolved_by = champ;
+          showNotification('🎉 Mandate fulfilled! Paneer Patties Party marked as received.', 'success');
+
+          // Re-render modal to reflect fulfilled state
+          openWeeklyWinnerModal(week);
+
+          // Dispatch event so other components (dashboard banner, leaderboard) react instantly
+          window.dispatchEvent(new CustomEvent('weekly-party-resolved', { detail: { week_id: week.week_id } }));
+        } catch (err: any) {
+          claimPartyBtn.removeAttribute('disabled');
+          claimPartyBtn.innerHTML = '<span>🍔</span><span>I Got the Party!</span>';
+          showNotification(err.message || 'Failed to resolve party mandate', 'error');
+        }
+      };
+    } else if (winnerActionBox) {
+      winnerActionBox.classList.add('hidden');
+    }
   }
 
   if (ranksList) {
@@ -171,22 +282,34 @@ export function openWeeklyWinnerModal(week: WeekSummary) {
         icon = '🥉 #3';
         tagBg = 'bg-amber-700/15 text-amber-600 border-amber-700/30';
       } else if (r.party_duty) {
-        icon = `🍔 #${r.rank}`;
-        tagBg = 'bg-orange-500/20 text-orange-400 border-orange-500/40 font-bold animate-pulse';
-        rowBg = 'bg-orange-500/[0.03]';
+        if (isResolved) {
+          icon = `✅ #${r.rank}`;
+          tagBg = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold';
+          rowBg = 'bg-emerald-500/[0.03]';
+        } else {
+          icon = `🍔 #${r.rank}`;
+          tagBg = 'bg-orange-500/20 text-orange-400 border-orange-500/40 font-bold animate-pulse';
+          rowBg = 'bg-orange-500/[0.03]';
+        }
       }
+
+      const dutyLabel = r.rank === 1 
+        ? (isResolved ? 'Party Enjoyed 🍔' : 'Free Patties') 
+        : r.party_duty 
+          ? (isResolved ? 'Party Delivered ✅' : '💸 Patties Sponsor') 
+          : 'Safe';
 
       return `
         <div class="flex items-center justify-between p-3 text-xs ${rowBg}">
           <div class="flex items-center gap-2.5">
-            <span class="font-mono font-bold ${r.rank === 1 ? 'text-amber-400' : r.party_duty ? 'text-orange-400' : 'text-muted'}">${icon}</span>
+            <span class="font-mono font-bold ${r.rank === 1 ? 'text-amber-400' : (r.party_duty && isResolved) ? 'text-emerald-400' : r.party_duty ? 'text-orange-400' : 'text-muted'}">${icon}</span>
             <span class="font-bold text-primary">${escapeHtml(r.display_name)}</span>
             ${r.is_me ? '<span class="text-[10px] text-accent font-mono font-bold">(You)</span>' : ''}
           </div>
           <div class="flex items-center gap-3">
             <span class="font-mono font-bold text-primary">${r.points} pts</span>
             <span class="px-2 py-0.5 rounded text-[10px] font-mono border ${tagBg}">
-              ${r.rank === 1 ? 'Free Patties' : r.party_duty ? '💸 Patties Sponsor' : 'Safe'}
+              ${dutyLabel}
             </span>
           </div>
         </div>

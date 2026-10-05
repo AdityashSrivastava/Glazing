@@ -324,6 +324,9 @@ class WeekSummary(BaseModel):
     winner: Optional[WeeklyRankItem] = None
     rankings: List[WeeklyRankItem] = []
     party_sponsors: List[str] = []
+    party_resolved: bool = False
+    party_resolved_at: Optional[str] = None
+    party_resolved_by: Optional[str] = None
 
 class WeeklyAchieversResponse(BaseModel):
     current_week_id: str
@@ -334,13 +337,7 @@ class WeeklyAchieversResponse(BaseModel):
     past_weeks: List[WeekSummary] = []
     current_week_preview: Optional[WeekSummary] = None
 
-@router.get("/weekly-achievers", response_model=WeeklyAchieversResponse)
-async def get_weekly_achievers(current_user_id: str = Depends(get_current_user)):
-    """
-    Returns past weekly champions, current sprint standings,
-    and identifies the 4th and 5th placed operatives tasked with sponsoring
-    the Paneer Patties Party for the champion.
-    """
+def compute_weekly_summaries(current_user_id: str):
     now_ist = datetime.now(IST)
     today_date = now_ist.date()
 
@@ -365,6 +362,20 @@ async def get_weekly_achievers(current_user_id: str = Depends(get_current_user))
         .eq("status", "COMPLETED") \
         .execute()
     all_completed = tasks_res.data or []
+
+    # 2b. Fetch party mandate resolutions
+    resolutions_res = db.table("tasks") \
+        .select("id, user_id, title, completed_at") \
+        .like("title", "%[PANEER_PATTIES_RESOLVED]%") \
+        .execute()
+    resolutions = resolutions_res.data or []
+    resolved_map = {}
+    for r in resolutions:
+        t_str = r.get("title", "")
+        for part in t_str.split():
+            clean_part = part.strip("[]:, -")
+            if "-W" in clean_part and len(clean_part) >= 7:
+                resolved_map[clean_part] = r
 
     # 3. Group tasks by ISO calendar week in IST
     weeks_dict = {}
@@ -462,6 +473,12 @@ async def get_weekly_achievers(current_user_id: str = Depends(get_current_user))
 
         winner = ranked_items[0] if ranked_items else None
 
+        res_entry = resolved_map.get(w_id)
+        is_party_resolved = (res_entry is not None)
+        party_resolved_at = res_entry.get("completed_at") if res_entry else None
+        resolved_uid = res_entry.get("user_id") if res_entry else None
+        resolved_by_name = next((u["display_name"] for u in users if str(u["id"]) == str(resolved_uid)), None) if resolved_uid else None
+
         summaries.append(WeekSummary(
             week_id=w_id,
             week_label=w_info["label"],
@@ -470,11 +487,24 @@ async def get_weekly_achievers(current_user_id: str = Depends(get_current_user))
             is_completed=is_completed,
             winner=winner,
             rankings=ranked_items,
-            party_sponsors=party_sponsors
+            party_sponsors=party_sponsors,
+            party_resolved=is_party_resolved,
+            party_resolved_at=party_resolved_at,
+            party_resolved_by=resolved_by_name
         ))
 
     # Sort weeks descending by start_date
     summaries.sort(key=lambda x: x.start_date, reverse=True)
+    return summaries, current_week_id, current_week_label, is_sunday, seconds_until_midnight
+
+@router.get("/weekly-achievers", response_model=WeeklyAchieversResponse)
+async def get_weekly_achievers(current_user_id: str = Depends(get_current_user)):
+    """
+    Returns past weekly champions, current sprint standings,
+    and identifies the 4th and 5th placed operatives tasked with sponsoring
+    the Paneer Patties Party for the champion.
+    """
+    summaries, current_week_id, current_week_label, is_sunday, seconds_until_midnight = compute_weekly_summaries(current_user_id)
 
     past_weeks = [s for s in summaries if s.is_completed]
     current_week_preview = next((s for s in summaries if s.week_id == current_week_id), None)
@@ -490,6 +520,77 @@ async def get_weekly_achievers(current_user_id: str = Depends(get_current_user))
         latest_completed_week=latest_completed_week,
         past_weeks=past_weeks,
         current_week_preview=current_week_preview
+    )
+
+class ResolvePartyResponse(BaseModel):
+    message: str
+    week_id: str
+    party_resolved: bool
+    resolved_by: str
+    resolved_at: str
+
+@router.post("/weekly-achievers/{week_id}/resolve-party", response_model=ResolvePartyResponse)
+async def resolve_weekly_party(week_id: str, current_user_id: str = Depends(get_current_user)):
+    """
+    Allows the champion who won the week (or admin) to resolve the Paneer Patties Party Mandate,
+    confirming 'I got the party!' and archiving the mandate.
+    """
+    summaries, _, _, _, _ = compute_weekly_summaries(current_user_id)
+    target_summary = next((s for s in summaries if s.week_id == week_id), None)
+    if not target_summary:
+        raise HTTPException(status_code=404, detail=f"Week {week_id} not found")
+
+    winner = target_summary.winner
+    if not winner:
+        raise HTTPException(status_code=400, detail=f"No winner found for {week_id}")
+
+    # Check caller info
+    user_res = db.table("users").select("id, display_name").eq("id", current_user_id).execute()
+    user_data = user_res.data[0] if user_res.data else {}
+    user_name = user_data.get("display_name", "")
+
+    is_winner = (str(winner.id) == str(current_user_id))
+    is_admin = (user_name.lower() == "adityash")
+
+    if not is_winner and not is_admin:
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Only the weekly champion ({winner.display_name}) can confirm receiving the Paneer Patties Party!"
+        )
+
+    # Check if already resolved
+    if target_summary.party_resolved:
+        return ResolvePartyResponse(
+            message="Paneer Patties Party Mandate is already resolved!",
+            week_id=week_id,
+            party_resolved=True,
+            resolved_by=target_summary.party_resolved_by or winner.display_name,
+            resolved_at=target_summary.party_resolved_at or datetime.now(timezone.utc).isoformat()
+        )
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    resolver_label = winner.display_name if is_winner else f"{user_name} (Admin Override)"
+    resolution_task = {
+        "user_id": current_user_id,
+        "title": f"🍔 [PANEER_PATTIES_RESOLVED] {week_id} - Party Delivered & Enjoyed!",
+        "is_private": False,
+        "estimated_hours": 0.1,
+        "actual_hours": 0.0,
+        "goal_id": None,
+        "status": "COMPLETED",
+        "points_earned": 0,
+        "completed_at": now_iso,
+        "created_at": now_iso,
+        "updated_at": now_iso
+    }
+    db.table("tasks").insert(resolution_task).execute()
+
+    return ResolvePartyResponse(
+        message="Paneer Patties Party Mandate resolved! Party confirmed.",
+        week_id=week_id,
+        party_resolved=True,
+        resolved_by=resolver_label,
+        resolved_at=now_iso
     )
 
 class SetPasswordRequest(BaseModel):

@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { apiFetch, getGymStatus, checkinGym, getWeeklyAchievers } from '../api';
+import { apiFetch, getGymStatus, checkinGym, getWeeklyAchievers, resolveWeeklyParty } from '../api';
 import { renderCompleteModal, openCompleteTaskModal, setupCompleteModalLogic } from './components/complete_modal';
 import { renderWeeklyWinnerModal, setupWeeklyWinnerModalLogic, openWeeklyWinnerModal } from './components/weekly_winner_modal';
 import { renderNavbar, setupNavbarLogic, showNotification } from './components/navbar';
@@ -160,10 +160,16 @@ export function renderDashboard(): string {
               </p>
             </div>
           </div>
-          <button id="dashboard-open-party-modal-btn" class="px-4 py-2 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 font-mono text-xs font-bold border border-orange-500/40 transition-colors cursor-pointer whitespace-nowrap self-start sm:self-auto flex items-center gap-2">
-            <span>🎉</span>
-            <span>View Debrief</span>
-          </button>
+          <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <button id="dashboard-claim-party-btn" class="hidden px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold shadow-md shadow-emerald-600/20 border border-emerald-400/40 transition-all cursor-pointer items-center gap-1.5 active:scale-95">
+              <span>🍔</span>
+              <span>I Got the Party!</span>
+            </button>
+            <button id="dashboard-open-party-modal-btn" class="px-4 py-2 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 font-mono text-xs font-bold border border-orange-500/40 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2">
+              <span>🎉</span>
+              <span>View Debrief</span>
+            </button>
+          </div>
         </div>
 
         <!-- Daily Habit Checkpoint: Gym Protocol -->
@@ -374,9 +380,16 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
     const partyBadge = document.getElementById('dashboard-party-badge');
     const partyDesc = document.getElementById('dashboard-party-desc');
     const partyBtn = document.getElementById('dashboard-open-party-modal-btn');
+    const claimBtn = document.getElementById('dashboard-claim-party-btn');
 
     if (latest && latest.is_completed && latest.winner) {
-      // The week has officially concluded (past Sunday 23:59:59 IST)!
+      // If already resolved, remove/keep hidden from everyone's dashboard!
+      if (latest.party_resolved) {
+        if (partyBanner) partyBanner.classList.add('hidden');
+        return;
+      }
+
+      // The week has officially concluded (past Sunday 23:59:59 IST) & mandate is still pending!
       const s1 = latest.party_sponsors?.[0] || 'Rank 4';
       const s2 = latest.party_sponsors?.[1] || 'Rank 5';
       const winnerName = latest.winner.display_name;
@@ -385,7 +398,7 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
         if (partyTitle) partyTitle.textContent = 'Paneer Patties Party Protocol';
         if (partyBadge) {
           partyBadge.textContent = 'Weekly Mandate';
-          partyBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/40';
+          partyBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/40 animate-pulse';
         }
         partyDesc.innerHTML = `Rank 4 (<strong>${escapeHtml(s1)}</strong>) & Rank 5 (<strong>${escapeHtml(s2)}</strong>) owe champion <strong>${escapeHtml(winnerName)}</strong> a Paneer Patties Party!`;
         partyBanner.classList.remove('hidden');
@@ -396,7 +409,54 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
         partyBtn.onclick = () => openWeeklyWinnerModal(latest);
       }
 
-      // Automatically show celebratory popup on new week if not seen yet
+      // Check if current user is the champion or admin
+      const isWinner = Boolean(latest.winner?.is_me);
+      const myRank = latest.rankings?.find(r => r.is_me);
+      const isAdmin = myRank?.display_name?.toLowerCase() === 'adityash';
+      const canResolve = isWinner || isAdmin;
+
+      if (claimBtn) {
+        if (canResolve) {
+          claimBtn.classList.remove('hidden');
+          claimBtn.classList.add('flex');
+          claimBtn.onclick = async () => {
+            const confirmed = window.confirm(
+              `Did you receive your Paneer Patties Party from ${s1} & ${s2}?\n\n` +
+              `Click OK to confirm "I got the party!" and fulfill the mandate.`
+            );
+            if (!confirmed) return;
+
+            claimBtn.setAttribute('disabled', 'true');
+            claimBtn.innerHTML = '<span>⏳</span><span>Confirming...</span>';
+
+            try {
+              await resolveWeeklyParty(latest.week_id);
+              showNotification('🎉 Paneer Patties Party fulfilled! Mandate resolved and archived in Leaderboard.', 'success');
+              latest.party_resolved = true;
+
+              if (partyBanner) {
+                partyBanner.style.transition = 'all 0.5s ease-out';
+                partyBanner.style.opacity = '0';
+                partyBanner.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                  partyBanner.classList.add('hidden');
+                }, 500);
+              }
+
+              window.dispatchEvent(new CustomEvent('weekly-party-resolved', { detail: { week_id: latest.week_id } }));
+            } catch (err: any) {
+              claimBtn.removeAttribute('disabled');
+              claimBtn.innerHTML = '<span>🍔</span><span>I Got the Party!</span>';
+              showNotification(err.message || 'Failed to resolve party mandate', 'error');
+            }
+          };
+        } else {
+          claimBtn.classList.add('hidden');
+          claimBtn.classList.remove('flex');
+        }
+      }
+
+      // Automatically show celebratory popup on new week if not seen yet AND not resolved
       const seenKey = `glazing_seen_week_winner_${latest.week_id}`;
       if (!localStorage.getItem(seenKey)) {
         setTimeout(() => {
@@ -424,10 +484,26 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
         partyBtn.onclick = () => openWeeklyWinnerModal(preview);
       }
 
-      // Note: We DO NOT auto-trigger the popup here because Sunday ends after 12:00 AM midnight!
+      if (claimBtn) {
+        claimBtn.classList.add('hidden');
+        claimBtn.classList.remove('flex');
+      }
     }
   }).catch(err => {
     console.warn('Failed to check weekly achievers:', err);
+  });
+
+  // Listen for resolution from modal or other views
+  window.addEventListener('weekly-party-resolved', () => {
+    const partyBanner = document.getElementById('dashboard-party-banner');
+    if (partyBanner) {
+      partyBanner.style.transition = 'all 0.5s ease-out';
+      partyBanner.style.opacity = '0';
+      partyBanner.style.transform = 'translateY(-10px)';
+      setTimeout(() => {
+        partyBanner.classList.add('hidden');
+      }, 500);
+    }
   });
 
   // 3. Event Listeners for Filters & Search

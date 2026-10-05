@@ -105,6 +105,9 @@ export interface WeekSummary {
   winner?: WeeklyRankItem | null;
   rankings: WeeklyRankItem[];
   party_sponsors: string[];
+  party_resolved?: boolean;
+  party_resolved_at?: string | null;
+  party_resolved_by?: string | null;
 }
 
 export interface WeeklyAchieversResponse {
@@ -119,6 +122,20 @@ export interface WeeklyAchieversResponse {
 
 export async function getWeeklyAchievers(): Promise<WeeklyAchieversResponse> {
   return apiFetch('/users/weekly-achievers');
+}
+
+export interface ResolvePartyResponse {
+  message: string;
+  week_id: string;
+  party_resolved: boolean;
+  resolved_by: string;
+  resolved_at: string;
+}
+
+export async function resolveWeeklyParty(weekId: string): Promise<ResolvePartyResponse> {
+  return apiFetch(`/users/weekly-achievers/${weekId}/resolve-party`, {
+    method: 'POST'
+  });
 }
 
 

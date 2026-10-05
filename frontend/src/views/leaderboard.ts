@@ -1,5 +1,5 @@
-import { apiFetch, getWeeklyAchievers } from '../api';
-import { renderNavbar, setupNavbarLogic } from './components/navbar';
+import { apiFetch, getWeeklyAchievers, resolveWeeklyParty } from '../api';
+import { renderNavbar, setupNavbarLogic, showNotification } from './components/navbar';
 import { escapeHtml } from '../utils';
 import { renderWeeklyWinnerModal, setupWeeklyWinnerModalLogic, openWeeklyWinnerModal } from './components/weekly_winner_modal';
 
@@ -454,6 +454,12 @@ async function fetchAndRenderWeeklyAchievers() {
     const s1 = activeOrLatest?.party_sponsors?.[0] || 'Rank 4';
     const s2 = activeOrLatest?.party_sponsors?.[1] || 'Rank 5';
     const isCompleted = activeOrLatest?.is_completed || false;
+    const isResolved = Boolean(activeOrLatest?.party_resolved);
+
+    // Permission checks
+    const myRank = activeOrLatest?.rankings?.find(r => r.is_me);
+    const isAdmin = myRank?.display_name?.toLowerCase() === 'adityash';
+    const canResolveHero = Boolean(isCompleted && !isResolved && (winner?.is_me || isAdmin));
 
     let heroHtml = '';
     if (activeOrLatest && winner) {
@@ -462,8 +468,8 @@ async function fetchAndRenderWeeklyAchievers() {
           
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-border/60">
             <div>
-              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full ${isCompleted ? 'bg-amber-400/20 text-amber-400 border-amber-400/30' : 'bg-orange-500/20 text-orange-300 border-orange-500/30'} text-[11px] font-mono font-bold uppercase tracking-wider mb-2">
-                <span>${isCompleted ? '👑 REIGNING WEEKLY CHAMPION' : isSunday ? '⚡ SUNDAY SPRINT FINALE (FREEZES AT 12:00 AM)' : '🔥 LIVE SPRINT PROJECTION'}</span>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full ${isResolved ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : isCompleted ? 'bg-amber-400/20 text-amber-400 border-amber-400/30' : 'bg-orange-500/20 text-orange-300 border-orange-500/30'} text-[11px] font-mono font-bold uppercase tracking-wider mb-2">
+                <span>${isResolved ? '👑 REIGNING CHAMPION • PARTY MANDATE FULFILLED ✅' : isCompleted ? '👑 REIGNING WEEKLY CHAMPION' : isSunday ? '⚡ SUNDAY SPRINT FINALE (FREEZES AT 12:00 AM)' : '🔥 LIVE SPRINT PROJECTION'}</span>
               </div>
               <h3 class="text-3xl md:text-4xl font-extrabold text-primary tracking-tight">
                 ${escapeHtml(winner.display_name)}
@@ -476,31 +482,58 @@ async function fetchAndRenderWeeklyAchievers() {
 
             <div class="flex items-center gap-3">
               <button id="view-celebration-popup-btn" class="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-amber-400/20 cursor-pointer">
-                <span>🎉</span> ${isCompleted ? 'View Party Mandate Popup' : 'Preview Party Mandate'}
+                <span>🎉</span> ${isResolved ? 'View Victory Debrief' : isCompleted ? 'View Party Mandate Popup' : 'Preview Party Mandate'}
               </button>
             </div>
           </div>
 
           <!-- Paneer Patties Party Callout Box -->
-          <div class="mt-6 p-4 md:p-5 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-center gap-3.5">
-              <span class="text-3xl md:text-4xl select-none">🍔</span>
-              <div>
-                <h4 class="text-xs font-black uppercase tracking-wider text-orange-400 font-mono flex items-center gap-1.5">
-                  <span>PANEER PATTIES PARTY MANDATE</span>
-                </h4>
-                <p class="text-xs text-body font-medium mt-0.5 leading-relaxed">
-                  ${isCompleted 
-                    ? `Rank 4 (<strong>${escapeHtml(s1)}</strong>) & Rank 5 (<strong>${escapeHtml(s2)}</strong>) MUST sponsor a celebratory Paneer Patties Party for champion <strong>${escapeHtml(winner.display_name)}</strong>!`
-                    : `<strong>Sunday Freeze Warning:</strong> Operatives who finish at #4 (currently <strong>${escapeHtml(s1)}</strong>) & #5 (currently <strong>${escapeHtml(s2)}</strong>) at midnight will owe <strong>${escapeHtml(winner.display_name)}</strong> a Paneer Patties Party!`
-                  }
-                </p>
+          ${isResolved ? `
+            <div class="mt-6 p-4 md:p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-center gap-3.5">
+                <span class="text-3xl md:text-4xl select-none">✅</span>
+                <div>
+                  <h4 class="text-xs font-black uppercase tracking-wider text-emerald-400 font-mono flex items-center gap-1.5">
+                    <span>PANEER PATTIES PARTY MANDATE FULFILLED</span>
+                  </h4>
+                  <p class="text-xs text-body font-medium mt-0.5 leading-relaxed">
+                    Champion <strong>${escapeHtml(winner.display_name)}</strong> confirmed receiving the Paneer Patties Party from <strong>${escapeHtml(s1)} & ${escapeHtml(s2)}</strong>! The mandate was fully honored and archived. 🎉
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 font-mono text-[11px] px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold whitespace-nowrap self-start sm:self-auto">
+                <span>✅ Honored by ${escapeHtml(s1)} & ${escapeHtml(s2)}</span>
               </div>
             </div>
-            <div class="flex items-center gap-2 font-mono text-[11px] px-3 py-1.5 rounded-xl bg-orange-500/20 text-orange-300 border border-orange-500/30 font-bold whitespace-nowrap self-start sm:self-auto">
-              <span>${isCompleted ? '💸 Mandate on' : '⚠️ On Hot Seat:'} ${escapeHtml(s1)} & ${escapeHtml(s2)}</span>
+          ` : `
+            <div class="mt-6 p-4 md:p-5 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-center gap-3.5">
+                <span class="text-3xl md:text-4xl select-none">🍔</span>
+                <div>
+                  <h4 class="text-xs font-black uppercase tracking-wider text-orange-400 font-mono flex items-center gap-1.5">
+                    <span>PANEER PATTIES PARTY MANDATE</span>
+                  </h4>
+                  <p class="text-xs text-body font-medium mt-0.5 leading-relaxed">
+                    ${isCompleted 
+                      ? `Rank 4 (<strong>${escapeHtml(s1)}</strong>) & Rank 5 (<strong>${escapeHtml(s2)}</strong>) MUST sponsor a celebratory Paneer Patties Party for champion <strong>${escapeHtml(winner.display_name)}</strong>!`
+                      : `<strong>Sunday Freeze Warning:</strong> Operatives who finish at #4 (currently <strong>${escapeHtml(s1)}</strong>) & #5 (currently <strong>${escapeHtml(s2)}</strong>) at midnight will owe <strong>${escapeHtml(winner.display_name)}</strong> a Paneer Patties Party!`
+                    }
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                ${canResolveHero ? `
+                  <button id="leaderboard-hero-claim-btn" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold shadow-md shadow-emerald-500/20 border border-emerald-400 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95">
+                    <span>🍔</span>
+                    <span>I Got the Party!</span>
+                  </button>
+                ` : ''}
+                <div class="flex items-center gap-2 font-mono text-[11px] px-3 py-1.5 rounded-xl bg-orange-500/20 text-orange-300 border border-orange-500/30 font-bold whitespace-nowrap">
+                  <span>${isCompleted ? '💸 Mandate on' : '⚠️ On Hot Seat:'} ${escapeHtml(s1)} & ${escapeHtml(s2)}</span>
+                </div>
+              </div>
             </div>
-          </div>
+          `}
 
           <!-- Standings Accordion -->
           <div class="mt-6">
@@ -508,20 +541,57 @@ async function fetchAndRenderWeeklyAchievers() {
               ${escapeHtml(activeOrLatest.week_label)} Squad Standings ${!isCompleted ? '(Live)' : ''}:
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              ${activeOrLatest.rankings.map(r => `
-                <div class="p-3.5 rounded-xl border ${r.rank === 1 ? 'border-amber-400/50 bg-amber-400/[0.04]' : r.party_duty ? 'border-orange-500/40 bg-orange-500/[0.03]' : 'border-border bg-surface'} flex flex-col justify-between">
-                  <div class="flex items-center justify-between text-xs mb-1.5">
-                    <span class="font-mono font-bold ${r.rank === 1 ? 'text-amber-400' : r.party_duty ? 'text-orange-400' : 'text-muted'}">
-                      ${r.rank === 1 ? '👑 #1' : r.party_duty ? `🍔 #${r.rank}` : `#${r.rank}`}
-                    </span>
-                    <span class="font-mono font-bold text-primary">${r.points} pts</span>
+              ${activeOrLatest.rankings.map(r => {
+                const isResolvedDuty = isResolved && r.party_duty;
+                const borderClass = r.rank === 1 
+                  ? 'border-amber-400/50 bg-amber-400/[0.04]' 
+                  : isResolvedDuty
+                    ? 'border-emerald-500/40 bg-emerald-500/[0.03]'
+                    : r.party_duty 
+                      ? 'border-orange-500/40 bg-orange-500/[0.03]' 
+                      : 'border-border bg-surface';
+                const icon = r.rank === 1 
+                  ? '👑 #1' 
+                  : isResolvedDuty 
+                    ? `✅ #${r.rank}` 
+                    : r.party_duty 
+                      ? `🍔 #${r.rank}` 
+                      : `#${r.rank}`;
+                const iconColor = r.rank === 1 
+                  ? 'text-amber-400' 
+                  : isResolvedDuty 
+                    ? 'text-emerald-400' 
+                    : r.party_duty 
+                      ? 'text-orange-400' 
+                      : 'text-muted';
+                const dutyStatus = r.rank === 1 
+                  ? (isResolved ? 'Party Enjoyed 🍔' : 'Free Patties') 
+                  : r.party_duty 
+                    ? (isResolved ? 'Party Delivered ✅' : (isCompleted ? '💸 Sponsoring Party' : '⚠️ Hot Seat')) 
+                    : 'Safe';
+                const dutyColor = r.rank === 1 
+                  ? 'text-amber-400 font-bold' 
+                  : isResolvedDuty 
+                    ? 'text-emerald-400 font-bold' 
+                    : r.party_duty 
+                      ? 'text-orange-400 font-bold animate-pulse' 
+                      : 'text-muted';
+
+                return `
+                  <div class="p-3.5 rounded-xl border ${borderClass} flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                      <span class="font-mono font-bold ${iconColor}">
+                        ${icon}
+                      </span>
+                      <span class="font-mono font-bold text-primary">${r.points} pts</span>
+                    </div>
+                    <div class="font-bold text-sm text-primary truncate">${escapeHtml(r.display_name)}</div>
+                    <div class="mt-2 text-[10px] font-mono ${dutyColor}">
+                      ${dutyStatus}
+                    </div>
                   </div>
-                  <div class="font-bold text-sm text-primary truncate">${escapeHtml(r.display_name)}</div>
-                  <div class="mt-2 text-[10px] font-mono ${r.rank === 1 ? 'text-amber-400 font-bold' : r.party_duty ? 'text-orange-400 font-bold animate-pulse' : 'text-muted'}">
-                    ${r.rank === 1 ? 'Free Patties' : r.party_duty ? (isCompleted ? '💸 Sponsoring Party' : '⚠️ Hot Seat') : 'Safe'}
-                  </div>
-                </div>
-              `).join('')}
+                `;
+              }).join('')}
             </div>
           </div>
 
@@ -540,7 +610,7 @@ async function fetchAndRenderWeeklyAchievers() {
               <span class="w-2 h-2 rounded-full bg-accent inline-block"></span>
               Weekly Champions Archive
             </h3>
-            <p class="text-[11px] text-muted mt-0.5">Historical records of weekly winners and party duty assignments.</p>
+            <p class="text-[11px] text-muted mt-0.5">Historical records of weekly winners, party duty assignments, and fulfillment telemetry.</p>
           </div>
           <span class="text-[10px] font-mono text-muted uppercase">Closed Loop: 5 Operatives</span>
         </div>
@@ -550,35 +620,56 @@ async function fetchAndRenderWeeklyAchievers() {
             <div class="py-8 text-center text-muted font-mono text-xs bg-surface/30 rounded-xl border border-border/40">
               No previous weeks archived yet. The current week concludes and archives tonight after 12:00 AM (midnight IST).
             </div>
-          ` : weeksToDisplay.map((w, idx) => `
-            <div class="p-4 rounded-2xl bg-surface/60 border border-border/80 hover:border-accent/40 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div class="flex items-start gap-4">
-                <div class="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/30 text-amber-400 flex items-center justify-center text-xl font-bold font-mono shrink-0">
-                  ${idx === 0 ? '👑' : '🏆'}
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h4 class="text-sm font-bold text-primary">${escapeHtml(w.week_label)}</h4>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-mono ${w.is_completed ? 'bg-accent/10 text-accent' : 'bg-amber-400/15 text-amber-400'} font-semibold">
-                      ${w.is_completed ? 'Concluded' : 'Active Cycle'}
-                    </span>
+          ` : weeksToDisplay.map((w, idx) => {
+            const canResolvePast = Boolean(w.is_completed && !w.party_resolved && (w.winner?.is_me || isAdmin));
+            return `
+              <div class="p-4 rounded-2xl bg-surface/60 border border-border/80 hover:border-accent/40 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-start gap-4">
+                  <div class="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/30 text-amber-400 flex items-center justify-center text-xl font-bold font-mono shrink-0">
+                    ${idx === 0 ? '👑' : '🏆'}
                   </div>
-                  <p class="text-xs text-body mt-1">
-                    Champion: <strong class="text-amber-400 font-bold">${escapeHtml(w.winner?.display_name || 'Operative')}</strong> with <strong>${w.winner?.points || 0} pts</strong> (${w.winner?.tasks_completed || 0} tasks, ${w.winner?.hours_logged || 0}h logged)
-                  </p>
-                  <p class="text-[11px] font-mono text-orange-400 mt-0.5">
-                    🍔 Party Duty: <strong>${escapeHtml(w.party_sponsors.join(' & ') || 'Rank 4 & 5')}</strong>
-                  </p>
+                  <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <h4 class="text-sm font-bold text-primary">${escapeHtml(w.week_label)}</h4>
+                      <span class="px-2 py-0.5 rounded text-[10px] font-mono ${w.is_completed ? 'bg-accent/10 text-accent' : 'bg-amber-400/15 text-amber-400'} font-semibold">
+                        ${w.is_completed ? 'Concluded' : 'Active Cycle'}
+                      </span>
+                      ${w.party_resolved ? `
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-1">
+                          <span>✅</span> Party Fulfilled
+                        </span>
+                      ` : (w.is_completed ? `
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-orange-500/20 text-orange-400 border border-orange-500/40 font-bold animate-pulse flex items-center gap-1">
+                          <span>🍔</span> Party Duty Pending
+                        </span>
+                      ` : '')}
+                    </div>
+                    <p class="text-xs text-body mt-1">
+                      Champion: <strong class="text-amber-400 font-bold">${escapeHtml(w.winner?.display_name || 'Operative')}</strong> with <strong>${w.winner?.points || 0} pts</strong> (${w.winner?.tasks_completed || 0} tasks, ${w.winner?.hours_logged || 0}h logged)
+                    </p>
+                    <p class="text-[11px] font-mono ${w.party_resolved ? 'text-emerald-400' : 'text-orange-400'} mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <span>🍔</span>
+                      <span>Party Duty: <strong>${escapeHtml(w.party_sponsors.join(' & ') || 'Rank 4 & 5')}</strong></span>
+                      ${w.party_resolved 
+                        ? '<span class="text-emerald-400 font-bold">• Delivered & Confirmed 🎉</span>' 
+                        : '<span class="text-orange-400 font-semibold">• Pending Delivery</span>'}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 self-end md:self-center flex-wrap">
+                  ${canResolvePast ? `
+                    <button class="archive-claim-party-btn px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold border border-emerald-400/40 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95" data-week-id="${w.week_id}" data-sponsors="${escapeHtml(w.party_sponsors.join(' & '))}">
+                      <span>🍔</span> I Got the Party!
+                    </button>
+                  ` : ''}
+                  <button class="view-week-detail-btn px-3.5 py-2 rounded-xl border border-border hover:border-accent hover:text-accent text-xs font-mono text-primary transition-colors cursor-pointer" data-week-id="${w.week_id}">
+                    🎉 Launch Debrief
+                  </button>
                 </div>
               </div>
-
-              <div class="flex items-center gap-2 self-end md:self-center">
-                <button class="view-week-detail-btn px-3.5 py-2 rounded-xl border border-border hover:border-accent hover:text-accent text-xs font-mono text-primary transition-colors cursor-pointer" data-week-id="${w.week_id}">
-                  🎉 Launch Debrief
-                </button>
-              </div>
-            </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       </div>
     `;
@@ -595,6 +686,56 @@ async function fetchAndRenderWeeklyAchievers() {
     if (celebrationBtn && activeOrLatest) {
       celebrationBtn.onclick = () => openWeeklyWinnerModal(activeOrLatest);
     }
+
+    // Hook up hero claim button if visible
+    const heroClaimBtn = document.getElementById('leaderboard-hero-claim-btn');
+    if (heroClaimBtn && activeOrLatest) {
+      heroClaimBtn.onclick = async () => {
+        const confirmed = window.confirm(`Confirm that you received your Paneer Patties Party from ${s1} & ${s2}?\n\nThis will fulfill the mandate across the squad and archive it.`);
+        if (!confirmed) return;
+
+        heroClaimBtn.setAttribute('disabled', 'true');
+        heroClaimBtn.innerHTML = '<span>⏳</span><span>Confirming...</span>';
+
+        try {
+          await resolveWeeklyParty(activeOrLatest.week_id);
+          showNotification('🎉 Mandate fulfilled! Paneer Patties Party marked as received.', 'success');
+          window.dispatchEvent(new CustomEvent('weekly-party-resolved', { detail: { week_id: activeOrLatest.week_id } }));
+          await fetchAndRenderWeeklyAchievers();
+        } catch (err: any) {
+          heroClaimBtn.removeAttribute('disabled');
+          heroClaimBtn.innerHTML = '<span>🍔</span><span>I Got the Party!</span>';
+          showNotification(err.message || 'Failed to resolve party mandate', 'error');
+        }
+      };
+    }
+
+    // Hook up past weeks claim buttons in archive
+    document.querySelectorAll('.archive-claim-party-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.currentTarget as HTMLButtonElement;
+        const weekId = target.getAttribute('data-week-id');
+        const sponsors = target.getAttribute('data-sponsors') || 'Rank 4 & 5';
+        if (!weekId) return;
+
+        const confirmed = window.confirm(`Confirm that you received your Paneer Patties Party from ${sponsors}?\n\nThis will fulfill the mandate across the squad and archive it.`);
+        if (!confirmed) return;
+
+        target.setAttribute('disabled', 'true');
+        target.innerHTML = '<span>⏳</span><span>Confirming...</span>';
+
+        try {
+          await resolveWeeklyParty(weekId);
+          showNotification('🎉 Mandate fulfilled! Paneer Patties Party marked as received.', 'success');
+          window.dispatchEvent(new CustomEvent('weekly-party-resolved', { detail: { week_id: weekId } }));
+          await fetchAndRenderWeeklyAchievers();
+        } catch (err: any) {
+          target.removeAttribute('disabled');
+          target.innerHTML = '<span>🍔</span><span>I Got the Party!</span>';
+          showNotification(err.message || 'Failed to resolve party mandate', 'error');
+        }
+      });
+    });
 
     // Hook up detail buttons in archive
     document.querySelectorAll('.view-week-detail-btn').forEach(btn => {
