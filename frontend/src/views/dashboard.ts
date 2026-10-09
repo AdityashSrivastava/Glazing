@@ -92,15 +92,15 @@ export function renderDashboard(): string {
         <!-- Header & Tactical Actions -->
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 pt-4">
           <div>
-            <div class="flex items-center gap-2 mb-2">
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-accent/10 border border-accent/30 text-accent">
-                <span class="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></span>
-                Live Tactical Stream
-              </span>
-              <span id="last-updated-text" class="text-[11px] font-mono text-muted">${syncStatusText}</span>
-            </div>
             <h2 class="text-3xl md:text-4xl font-extrabold text-primary tracking-tight">Global Activity</h2>
-            <p class="text-body text-sm mt-1">Real-time squad execution feed, live task completions, and active field contracts.</p>
+            <div class="flex items-center gap-2 text-body text-sm mt-1">
+              <span>Real-time squad execution feed, live task completions, and active field contracts.</span>
+              <span class="text-muted text-xs">•</span>
+              <span id="last-updated-text" class="text-[11px] font-mono text-muted flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 motion-reduce:animate-none animate-pulse"></span>
+                ${syncStatusText}
+              </span>
+            </div>
           </div>
 
           <div class="flex items-center gap-3">
@@ -110,7 +110,7 @@ export function renderDashboard(): string {
               </svg>
               <span>Initialize Task</span>
             </button>
-            <button id="refresh-feed-btn" class="btn-ghost flex items-center gap-1.5 text-xs py-2 px-3 border border-border hover:bg-surface transition-colors" title="Reload live feed">
+            <button id="refresh-feed-btn" aria-label="Refresh telemetry feed" class="btn-ghost flex items-center gap-1.5 text-xs py-2 px-3 border border-border hover:bg-surface transition-colors" title="Reload live feed">
               <svg id="refresh-spinner" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
               </svg>
@@ -122,10 +122,10 @@ export function renderDashboard(): string {
         <!-- Squad Pulse Telemetry Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <!-- Operatives In Field -->
-          <div class="theme-card p-4 flex flex-col justify-between border-l-4 border-l-amber-500/80 hover:border-accent/40 transition-colors">
+          <div class="theme-card p-4 flex flex-col justify-between border border-border/80 hover:border-border transition-colors">
             <div class="flex items-center justify-between text-muted mb-2">
               <span class="text-[11px] font-mono uppercase font-bold tracking-wider">In Field Focus</span>
-              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              <span class="w-2 h-2 rounded-full bg-amber-400 motion-reduce:animate-none animate-pulse"></span>
             </div>
             <div>
               <div id="stat-active-in-field" class="text-2xl font-black font-mono text-primary">${activeVal}</div>
@@ -134,7 +134,7 @@ export function renderDashboard(): string {
           </div>
 
           <!-- Hours Logged Today -->
-          <div class="theme-card p-4 flex flex-col justify-between border-l-4 border-l-cyan-500/80 hover:border-accent/40 transition-colors">
+          <div class="theme-card p-4 flex flex-col justify-between border border-border/80 hover:border-border transition-colors">
             <div class="flex items-center justify-between text-muted mb-2">
               <span class="text-[11px] font-mono uppercase font-bold tracking-wider">Hours Today</span>
               <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -146,7 +146,7 @@ export function renderDashboard(): string {
           </div>
 
           <!-- Points Scored Today -->
-          <div class="theme-card p-4 flex flex-col justify-between border-l-4 border-l-emerald-500/80 hover:border-accent/40 transition-colors">
+          <div class="theme-card p-4 flex flex-col justify-between border border-border/80 hover:border-border transition-colors">
             <div class="flex items-center justify-between text-muted mb-2">
               <span class="text-[11px] font-mono uppercase font-bold tracking-wider">Squad Points</span>
               <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -158,10 +158,10 @@ export function renderDashboard(): string {
           </div>
 
           <!-- Active Bounty Pool -->
-          <div class="theme-card p-4 flex flex-col justify-between border-l-4 border-l-yellow-500/80 hover:border-accent/40 transition-colors">
+          <div class="theme-card p-4 flex flex-col justify-between border border-border/80 hover:border-border transition-colors">
             <div class="flex items-center justify-between text-muted mb-2">
               <span class="text-[11px] font-mono uppercase font-bold tracking-wider">Bounty Pool</span>
-              <span class="text-yellow-400 font-bold text-xs">🎯</span>
+              <svg class="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v3m0 12v3M3 12h3m12 0h3"/></svg>
             </div>
             <div>
               <div id="stat-bounty-pool" class="text-2xl font-black font-mono text-yellow-500">${bountyPoolVal}</div>
@@ -173,8 +173,8 @@ export function renderDashboard(): string {
         <!-- Weekly Achiever & Paneer Patties Party Protocol Banner -->
         <div id="dashboard-party-banner" class="hidden mb-8 theme-card p-4 md:p-5 border border-orange-500/30 bg-gradient-to-r from-orange-500/[0.08] via-surface to-surface flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div class="flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-xl flex-shrink-0 select-none">
-              🍔
+            <div class="w-11 h-11 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center flex-shrink-0 select-none">
+              <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
             </div>
             <div>
               <div class="flex items-center gap-2">
@@ -189,12 +189,12 @@ export function renderDashboard(): string {
             </div>
           </div>
           <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-            <button id="dashboard-claim-party-btn" class="hidden px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold shadow-md shadow-emerald-600/20 border border-emerald-400/40 transition-all cursor-pointer items-center gap-1.5 active:scale-95">
-              <span>🍔</span>
+            <button id="dashboard-claim-party-btn" class="hidden px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold shadow-md shadow-emerald-600/20 border border-emerald-400/40 transition-all cursor-pointer items-center gap-1.5 active:scale-95 min-h-[38px]">
+              <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
               <span>I Got the Party!</span>
             </button>
-            <button id="dashboard-open-party-modal-btn" class="px-4 py-2 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 font-mono text-xs font-bold border border-orange-500/40 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2">
-              <span>🎉</span>
+            <button id="dashboard-open-party-modal-btn" class="px-4 py-2 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 font-mono text-xs font-bold border border-orange-500/40 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2 min-h-[38px]">
+              <svg class="w-3.5 h-3.5 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
               <span>View Debrief</span>
             </button>
           </div>
@@ -203,14 +203,14 @@ export function renderDashboard(): string {
         <!-- Daily Habit Checkpoint: Gym Protocol -->
         <div class="mb-8 theme-card p-4 md:p-5 border border-emerald-500/30 bg-gradient-to-r from-emerald-500/[0.08] via-surface to-surface flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div class="flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl flex-shrink-0">
-              🏋️
+            <div class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"/></svg>
             </div>
             <div>
               <div class="flex items-center gap-2">
                 <h3 class="text-sm font-bold text-primary tracking-wide">Daily Gym Checkpoint</h3>
-                <span id="gym-streak-badge" class="hidden text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                  🔥 0-day streak
+                <span id="gym-streak-badge" class="hidden text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 items-center gap-1">
+                  0-day streak
                 </span>
               </div>
               <p id="gym-status-desc" class="text-xs text-muted mt-0.5">
@@ -226,9 +226,10 @@ export function renderDashboard(): string {
             </div>
             <button 
               id="gym-checkin-btn" 
-              class="btn-primary text-xs font-semibold py-2 px-4 flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer"
+              class="btn-primary text-xs font-semibold py-2 px-4 flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer min-h-[38px]"
             >
-              <span>🏋️ Check In for Today (+5 pts)</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"/></svg>
+              <span>Check In for Today (+5 pts)</span>
             </button>
           </div>
         </div>
@@ -239,33 +240,38 @@ export function renderDashboard(): string {
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <!-- Search Input -->
             <div class="relative flex-1 max-w-md">
+              <label for="feed-search-input" class="sr-only">Search tasks</label>
               <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
               </span>
               <input 
                 type="text" 
                 id="feed-search-input" 
+                aria-label="Search tasks by title, operative, or objective"
                 placeholder="Search tasks by title, operative, or objective..." 
-                class="theme-input pl-9 pr-8 text-xs w-full py-2"
+                class="theme-input pl-9 pr-8 text-xs w-full py-2 min-h-[38px]"
               />
-              <button id="clear-search-btn" class="absolute inset-y-0 right-0 pr-3 flex items-center text-muted hover:text-primary hidden">
+              <button id="clear-search-btn" aria-label="Clear search query" class="absolute inset-y-0 right-0 pr-3 flex items-center justify-center text-muted hover:text-primary hidden min-w-[36px] min-h-[38px]">
                 &times;
               </button>
             </div>
 
             <!-- Status Tabs -->
             <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0" id="status-filter-tabs">
-              <button data-status="ALL" class="status-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-accent text-white shadow-sm">
+              <button data-status="ALL" class="status-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-accent text-white shadow-sm min-h-[36px] flex items-center">
                 All Feed <span id="count-badge-all" class="ml-1 opacity-80 text-[10px] font-mono">(0)</span>
               </button>
-              <button data-status="IN_PROGRESS" class="status-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium text-body hover:text-primary hover:bg-surface transition-all">
-                ⚡ In Focus <span id="count-badge-inprogress" class="ml-1 opacity-80 text-[10px] font-mono">(0)</span>
+              <button data-status="IN_PROGRESS" class="status-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium text-body hover:text-primary hover:bg-surface transition-all min-h-[36px] flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>In Focus</span> <span id="count-badge-inprogress" class="opacity-80 text-[10px] font-mono">(0)</span>
               </button>
-              <button data-status="COMPLETED" class="status-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium text-body hover:text-primary hover:bg-surface transition-all">
-                ✅ Completed <span id="count-badge-completed" class="ml-1 opacity-80 text-[10px] font-mono">(0)</span>
+              <button data-status="COMPLETED" class="status-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium text-body hover:text-primary hover:bg-surface transition-all min-h-[36px] flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                <span>Completed</span> <span id="count-badge-completed" class="opacity-80 text-[10px] font-mono">(0)</span>
               </button>
-              <button data-status="BOUNTY" class="status-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium text-body hover:text-primary hover:bg-surface transition-all">
-                🎯 Bounty Targets <span id="count-badge-bounty" class="ml-1 opacity-80 text-[10px] font-mono">(0)</span>
+              <button data-status="BOUNTY" class="status-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium text-body hover:text-primary hover:bg-surface transition-all min-h-[36px] flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v3m0 12v3M3 12h3m12 0h3"/></svg>
+                <span>Bounty Targets</span> <span id="count-badge-bounty" class="opacity-80 text-[10px] font-mono">(0)</span>
               </button>
             </div>
           </div>
@@ -275,8 +281,8 @@ export function renderDashboard(): string {
             <div class="flex flex-wrap items-center gap-3">
               <!-- Operative Filter -->
               <div class="flex items-center gap-1.5">
-                <span class="text-muted font-medium">Operative:</span>
-                <select id="filter-operative-select" class="theme-input py-1 px-2.5 text-xs font-medium max-w-[160px]">
+                <label for="filter-operative-select" class="text-muted font-medium">Operative:</label>
+                <select id="filter-operative-select" class="theme-input py-1 px-2.5 text-xs font-medium max-w-[160px] min-h-[36px]">
                   <option value="ALL">All Squad Members</option>
                   <option value="Adityash">Adityash</option>
                   <option value="Manas">Manas</option>
@@ -288,8 +294,8 @@ export function renderDashboard(): string {
 
               <!-- Objective / Goal Filter -->
               <div class="flex items-center gap-1.5">
-                <span class="text-muted font-medium">Objective:</span>
-                <select id="filter-goal-select" class="theme-input py-1 px-2.5 text-xs font-medium max-w-[200px]">
+                <label for="filter-goal-select" class="text-muted font-medium">Objective:</label>
+                <select id="filter-goal-select" class="theme-input py-1 px-2.5 text-xs font-medium max-w-[200px] min-h-[36px]">
                   <option value="ALL">All Linked Goals</option>
                 </select>
               </div>
@@ -298,7 +304,7 @@ export function renderDashboard(): string {
             <!-- Result Counter & Reset -->
             <div class="flex items-center gap-2">
               <span id="feed-results-count" class="text-muted font-mono text-[11px]">Showing 0 executions</span>
-              <button id="reset-filters-btn" class="text-accent hover:underline text-[11px] font-medium hidden">
+              <button id="reset-filters-btn" class="text-accent hover:underline text-[11px] font-medium hidden min-h-[36px] flex items-center">
                 Reset Filters
               </button>
             </div>
@@ -324,11 +330,12 @@ export function renderDashboard(): string {
           <div class="flex justify-between items-center mb-5 pb-4 border-b border-border">
             <div>
               <h2 class="text-sm font-bold tracking-wider text-yellow-500 uppercase flex items-center gap-2">
-                <span>🎯 Stake Bounty Escrow</span>
+                <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v3m0 12v3M3 12h3m12 0h3"/></svg>
+                <span>Stake Bounty Escrow</span>
               </h2>
               <p id="bounty-modal-task-title" class="text-xs text-muted truncate max-w-[280px] mt-0.5">Task title</p>
             </div>
-            <button id="close-quick-bounty-btn" class="text-muted hover:text-primary transition-colors text-lg leading-none">&times;</button>
+            <button id="close-quick-bounty-btn" aria-label="Close bounty modal" class="text-muted hover:text-primary transition-colors text-lg leading-none min-w-[32px] min-h-[32px] flex items-center justify-center">&times;</button>
           </div>
 
           <form id="quick-bounty-form" class="space-y-4">
@@ -340,16 +347,16 @@ export function renderDashboard(): string {
             </div>
 
             <div>
-              <label class="block text-[11px] font-semibold uppercase mb-1.5 text-muted tracking-wider">
+              <label for="quick-bounty-points-input" class="block text-[11px] font-semibold uppercase mb-1.5 text-muted tracking-wider">
                 Select Points to Stake
               </label>
               
               <!-- Preset Chips -->
               <div class="grid grid-cols-4 gap-2 mb-3">
-                <button type="button" data-preset="10" class="bounty-preset-chip py-1.5 rounded-lg border border-border hover:border-yellow-500/60 font-mono text-xs font-bold text-primary hover:bg-yellow-500/10 transition-colors">10 pts</button>
-                <button type="button" data-preset="15" class="bounty-preset-chip py-1.5 rounded-lg border border-border hover:border-yellow-500/60 font-mono text-xs font-bold text-primary hover:bg-yellow-500/10 transition-colors">15 pts</button>
-                <button type="button" data-preset="25" class="bounty-preset-chip py-1.5 rounded-lg border border-border hover:border-yellow-500/60 font-mono text-xs font-bold text-primary hover:bg-yellow-500/10 transition-colors">25 pts</button>
-                <button type="button" data-preset="50" class="bounty-preset-chip py-1.5 rounded-lg border border-border hover:border-yellow-500/60 font-mono text-xs font-bold text-primary hover:bg-yellow-500/10 transition-colors">50 pts</button>
+                <button type="button" data-preset="10" class="bounty-preset-chip py-1.5 rounded-lg border border-border hover:border-yellow-500/60 font-mono text-xs font-bold text-primary hover:bg-yellow-500/10 transition-colors min-h-[36px]">10 pts</button>
+                <button type="button" data-preset="15" class="bounty-preset-chip py-1.5 rounded-lg border border-border hover:border-yellow-500/60 font-mono text-xs font-bold text-primary hover:bg-yellow-500/10 transition-colors min-h-[36px]">15 pts</button>
+                <button type="button" data-preset="25" class="bounty-preset-chip py-1.5 rounded-lg border border-border hover:border-yellow-500/60 font-mono text-xs font-bold text-primary hover:bg-yellow-500/10 transition-colors min-h-[36px]">25 pts</button>
+                <button type="button" data-preset="50" class="bounty-preset-chip py-1.5 rounded-lg border border-border hover:border-yellow-500/60 font-mono text-xs font-bold text-primary hover:bg-yellow-500/10 transition-colors min-h-[36px]">50 pts</button>
               </div>
 
               <input 
@@ -358,14 +365,14 @@ export function renderDashboard(): string {
                 required 
                 min="10" 
                 step="5" 
-                class="theme-input font-mono text-sm" 
+                class="theme-input font-mono text-sm min-h-[38px]" 
                 placeholder="Custom stake (min 10)" 
                 value="15"
               />
               <p class="text-[10px] text-muted mt-1">If the operative completes this task, they win your staked points!</p>
             </div>
 
-            <button type="submit" id="submit-quick-bounty-btn" class="btn-primary w-full bg-yellow-500 hover:bg-yellow-600 text-black font-mono font-bold tracking-wider text-xs uppercase py-2.5">
+            <button type="submit" id="submit-quick-bounty-btn" class="btn-primary w-full bg-yellow-500 hover:bg-yellow-600 text-black font-mono font-bold tracking-wider text-xs uppercase py-2.5 min-h-[40px]">
               Lock Escrow & Issue Bounty
             </button>
           </form>
@@ -445,7 +452,7 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
       }
 
       if (partyBtn) {
-        partyBtn.innerHTML = '<span>🎉</span><span>View Debrief</span>';
+        partyBtn.innerHTML = '<svg class="w-3.5 h-3.5 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span>View Debrief</span>';
         partyBtn.onclick = () => openWeeklyWinnerModal(latest);
       }
 
@@ -464,11 +471,11 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
             if (!confirmed) return;
 
             claimBtn.setAttribute('disabled', 'true');
-            claimBtn.innerHTML = '<span>⏳</span><span>Confirming...</span>';
+            claimBtn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Confirming...</span>';
 
             try {
               await resolveWeeklyParty(latest.week_id);
-              showNotification('🎉 Paneer Patties Party fulfilled! Mandate resolved and archived in Leaderboard.', 'success');
+              showNotification('Paneer Patties Party fulfilled! Mandate resolved and archived in Leaderboard.', 'success');
               latest.party_resolved = true;
 
               if (partyBanner) {
@@ -483,7 +490,7 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
               window.dispatchEvent(new CustomEvent('weekly-party-resolved', { detail: { week_id: latest.week_id } }));
             } catch (err: any) {
               claimBtn.removeAttribute('disabled');
-              claimBtn.innerHTML = '<span>🍔</span><span>I Got the Party!</span>';
+              claimBtn.innerHTML = '<svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>I Got the Party!</span>';
               showNotification(err.message || 'Failed to resolve party mandate', 'error');
             }
           };
@@ -507,7 +514,7 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
       const winnerName = preview.winner.display_name;
 
       if (partyBanner && partyDesc) {
-        if (partyTitle) partyTitle.textContent = data.is_sunday_night ? '⚡ Sunday Sprint Finale Tonight' : '🔥 Weekly Sprint In Progress';
+        if (partyTitle) partyTitle.textContent = data.is_sunday_night ? 'Sunday Sprint Finale Tonight' : 'Weekly Sprint In Progress';
         if (partyBadge) {
           partyBadge.textContent = data.is_sunday_night ? 'Freezes at 12:00 AM' : 'Live Standings';
           partyBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 animate-pulse';
@@ -517,7 +524,7 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
       }
 
       if (partyBtn) {
-        partyBtn.innerHTML = '<span>⏳</span><span>Preview Live Stakes</span>';
+        partyBtn.innerHTML = '<svg class="w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg><span>Preview Live Stakes</span>';
         partyBtn.onclick = () => openWeeklyWinnerModal(preview);
       }
 
@@ -647,13 +654,13 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
       gymBtn.textContent = 'Registering...';
       try {
         await checkinGym();
-        showNotification('🏋️ Gym Checkpoint Verified! +5 points scored today!');
+        showNotification('Gym Checkpoint Verified! +5 points scored today!', 'success');
         await updateGymCheckpointUI();
         await loadFeedAndStats(feedContainer);
       } catch (err: any) {
         alert(`Failed to check in: ${err.message}`);
         gymBtn.disabled = false;
-        gymBtn.innerHTML = '<span>🏋️ Check In for Today (+5 pts)</span>';
+        gymBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"/></svg><span>Check In for Today (+5 pts)</span>';
       }
     };
   }
@@ -743,7 +750,7 @@ async function initDashboard() {
         const goalSelect = document.getElementById('filter-goal-select') as HTMLSelectElement;
         if (goalSelect) {
           goalSelect.innerHTML = '<option value="ALL">All Linked Goals</option>' + 
-            allGoals.map(g => `<option value="${escapeHtml(g.id)}">🎯 ${escapeHtml(g.title)}</option>`).join('');
+            allGoals.map(g => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.title)}</option>`).join('');
         }
       })
       .catch(() => {});
@@ -827,9 +834,11 @@ async function updateGymCheckpointUI() {
     if (gymStreakBadge) {
       if (status.streak_days > 0) {
         gymStreakBadge.classList.remove('hidden');
-        gymStreakBadge.textContent = `🔥 ${status.streak_days}-day streak`;
+        gymStreakBadge.classList.add('inline-flex');
+        gymStreakBadge.innerHTML = `<svg class="w-3 h-3 text-amber-400 inline-block mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg><span>${status.streak_days}-day streak</span>`;
       } else {
         gymStreakBadge.classList.add('hidden');
+        gymStreakBadge.classList.remove('inline-flex');
       }
     }
 
@@ -848,7 +857,7 @@ async function updateGymCheckpointUI() {
       if (gymCheckinBtn) {
         gymCheckinBtn.classList.remove('hidden');
         gymCheckinBtn.disabled = false;
-        gymCheckinBtn.innerHTML = `<span>🏋️ Check In for Today (+5 pts)</span>`;
+        gymCheckinBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"/></svg><span>Check In for Today (+5 pts)</span>`;
       }
       if (gymDesc) {
         gymDesc.textContent = `Hit the gym today? Check in to register your physical conditioning and claim +5 pts.`;
@@ -935,12 +944,12 @@ function renderFilteredTasks(container: HTMLDivElement) {
   if (filtered.length === 0) {
     container.innerHTML = `
       <div class="theme-card text-center py-16">
-        <div class="w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center mx-auto mb-3 text-muted text-lg">
-          🔍
+        <div class="w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center mx-auto mb-3 text-muted">
+          <svg class="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         </div>
         <h3 class="text-sm font-bold text-primary">No tasks match your telemetry criteria</h3>
         <p class="text-xs text-muted mt-1 max-w-sm mx-auto">Try clearing search filters or initialize a new task to dispatch to the squad feed.</p>
-        <button id="empty-state-reset-btn" class="btn-primary text-xs font-semibold py-1.5 px-4 mt-4">
+        <button id="empty-state-reset-btn" class="btn-primary text-xs font-semibold py-2 px-4 mt-4 min-h-[38px]">
           Reset Telemetry Filters
         </button>
       </div>
@@ -976,13 +985,13 @@ function renderFilteredTasks(container: HTMLDivElement) {
     } else if (isInProgress) {
       statusBadge = `
         <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 motion-reduce:animate-none animate-ping"></span>
           DEEP FOCUS
         </span>
       `;
     } else if (isPending) {
       statusBadge = `
-        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
           <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
           STANDBY
         </span>
@@ -995,22 +1004,23 @@ function renderFilteredTasks(container: HTMLDivElement) {
       `;
     }
 
-    // Border styling
-    let borderAccent = 'border-l-accent/50';
-    if (isInProgress) borderAccent = 'border-l-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.08)]';
-    else if (isPending) borderAccent = 'border-l-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.04)]';
-    else if (isCompleted) borderAccent = 'border-l-emerald-500/40';
-    else if (isClassified) borderAccent = 'border-l-rose-500';
+    // Card border and background accent styling (clean 1px system border, no AI slop side-tabs)
+    let cardAccent = 'border-border/80 hover:border-border';
+    if (isInProgress) cardAccent = 'border-emerald-500/30 bg-emerald-500/[0.02] hover:border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.04)]';
+    else if (isPending) cardAccent = 'border-border/80 hover:border-amber-500/30';
+    else if (isCompleted) cardAccent = 'border-border/60 hover:border-border opacity-95';
+    else if (isClassified) cardAccent = 'border-rose-500/40 bg-rose-500/[0.02]';
 
     const relativeTime = formatRelativeTime(task.created_at);
     const userInitial = (task.user_name || 'Operative').charAt(0).toUpperCase();
 
     // Bounty Callout Banner
     const hasBounties = (task.active_bounties_count || 0) > 0;
+    const targetIconSvg = `<svg class="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v3m0 12v3M3 12h3m12 0h3"/></svg>`;
     const bountyBanner = hasBounties ? `
-      <div class="mt-3 p-2.5 rounded-lg border border-yellow-500/40 bg-yellow-500/[0.06] flex items-center justify-between text-xs">
+      <div class="mt-3 p-2.5 rounded-lg border border-yellow-500/30 bg-yellow-500/[0.04] flex items-center justify-between text-xs">
         <div class="flex items-center gap-2 text-yellow-400 font-semibold">
-          <span class="text-sm">🎯</span>
+          ${targetIconSvg}
           <span>${task.total_bounty_points} PTS BOUNTY STAKED by ${escapeHtml((task.bounty_issuers || []).join(', ')) || 'Squad Peer'}</span>
         </div>
         <span class="font-mono text-[10px] text-yellow-500 uppercase tracking-wider font-bold">Escrow Active</span>
@@ -1028,7 +1038,7 @@ function renderFilteredTasks(container: HTMLDivElement) {
     const estRewardPts = Math.round(task.estimated_hours * domainRate) + 5;
 
     return `
-      <div class="theme-card p-5 border-l-4 ${borderAccent} transition-all duration-200 hover:border-accent/60">
+      <div class="theme-card p-5 border ${cardAccent} transition-all duration-200">
         <!-- Top Row: Operative, Time, Goal, Status -->
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div class="flex items-center gap-2.5">
@@ -1051,8 +1061,9 @@ function renderFilteredTasks(container: HTMLDivElement) {
           <!-- Status & Goal Badges -->
           <div class="flex items-center gap-2">
             ${task.goal_title ? `
-              <span class="px-2 py-0.5 rounded text-[10px] bg-surface border border-border text-muted font-mono tracking-tight truncate max-w-[180px]">
-                🎯 ${escapeHtml(task.goal_title)}
+              <span class="px-2 py-0.5 rounded text-[10px] bg-surface border border-border text-muted font-mono tracking-tight truncate max-w-[180px] inline-flex items-center gap-1">
+                <svg class="w-2.5 h-2.5 text-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
+                <span class="truncate">${escapeHtml(task.goal_title)}</span>
               </span>
             ` : ''}
             ${statusBadge}
@@ -1061,21 +1072,23 @@ function renderFilteredTasks(container: HTMLDivElement) {
 
         <!-- Middle Content: Task Title & Badges -->
         <div class="mb-3">
-          <h3 class="text-base font-bold tracking-tight ${isClassified ? 'text-rose-400 italic' : 'text-primary'}">
-            ${isClassified ? '🔒 [ CLASSIFIED TACTICAL DATA ]' : escapeHtml(task.title)}
+          <h3 class="text-base font-bold tracking-tight ${isClassified ? 'text-rose-400 italic flex items-center gap-1.5' : 'text-primary'}">
+            ${isClassified ? `<svg class="w-3.5 h-3.5 text-rose-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg><span>[ CLASSIFIED TACTICAL DATA ]</span>` : escapeHtml(task.title)}
           </h3>
 
           <!-- Achievement Badges (First Blood, Proof Verified) -->
           <div class="flex flex-wrap items-center gap-2 mt-2">
             ${task.is_first_blood ? `
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                🩸 First Blood (+3 pts)
+                <svg class="w-2.5 h-2.5 text-rose-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21a6 6 0 006-6c0-3.5-6-10-6-10S6 11.5 6 15a6 6 0 006 6z"/></svg>
+                First Blood (+3 pts)
               </span>
             ` : ''}
 
             ${task.is_proof_verified ? `
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" title="${escapeHtml(task.proof_feedback || 'System Verified')}">
-                🛡️ Proof Verified (+5 pts)
+                <svg class="w-2.5 h-2.5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                Proof Verified (+5 pts)
               </span>
             ` : ''}
 
@@ -1087,7 +1100,8 @@ function renderFilteredTasks(container: HTMLDivElement) {
 
             ${(task.tracked_timer_minutes || 0) > 0 ? `
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                ⏱️ ${task.tracked_timer_minutes}m focused
+                <svg class="w-2.5 h-2.5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4l2.5 2.5M10 2h4M12 2v3"/></svg>
+                ${task.tracked_timer_minutes}m focused
               </span>
             ` : ''}
 
@@ -1105,7 +1119,7 @@ function renderFilteredTasks(container: HTMLDivElement) {
               <a href="${escapeHtml(safeUrl(task.proof_url))}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-[11px] font-mono text-accent hover:underline bg-accent/10 px-2.5 py-1 rounded border border-accent/20 truncate max-w-[320px]">
                 ${task.proof_url.match(/\.(png|jpg|jpeg|webp|gif)$/i) || task.proof_url.includes('proof_uploads') ? `
                   <svg class="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  <span class="truncate">📸 View Screenshot</span>
+                  <span class="truncate">View Screenshot</span>
                 ` : `
                   <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                   <span class="truncate">${escapeHtml(task.proof_url)}</span>
@@ -1113,7 +1127,8 @@ function renderFilteredTasks(container: HTMLDivElement) {
               </a>
               ${task.is_proof_verified ? `
                 <span class="text-[10px] font-mono text-emerald-400 flex items-center gap-1 font-semibold">
-                  <span>✓ Verified</span>
+                  <svg class="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  <span>Verified</span>
                 </span>
               ` : ''}
             </div>
@@ -1149,10 +1164,12 @@ function renderFilteredTasks(container: HTMLDivElement) {
                 data-task-status="${task.status}"
                 class="btn-ghost text-xs font-semibold py-1.5 px-2.5 border ${
                   isInProgress ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' : 'border-border text-muted hover:text-primary hover:bg-surface'
-                } flex items-center gap-1 transition-colors"
+                } flex items-center gap-1.5 transition-colors min-h-[32px]"
                 title="${isInProgress ? 'Stand down focus' : 'Activate Deep Focus'}"
               >
-                <span>${isInProgress ? '🟢 In Focus' : '⚡ Deep Focus'}</span>
+                ${isInProgress 
+                  ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 motion-reduce:animate-none animate-pulse"></span><span>In Focus</span>' 
+                  : '<svg class="w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg><span>Deep Focus</span>'}
               </button>
               <button 
                 data-action="complete" 
@@ -1162,14 +1179,14 @@ function renderFilteredTasks(container: HTMLDivElement) {
                 data-task-category="${encodeURIComponent(task.category || '')}"
                 data-task-timer-mins="${task.tracked_timer_minutes || 0}"
                 data-task-timer-hours="${task.tracked_timer_hours || 0}"
-                class="btn-primary text-xs font-semibold py-1.5 px-3 flex items-center gap-1.5 shadow-sm"
+                class="btn-primary text-xs font-semibold py-1.5 px-3 flex items-center gap-1.5 shadow-sm min-h-[32px]"
               >
                 <span>Finalize</span>
               </button>
               <button 
                 data-action="cancel" 
                 data-task-id="${task.id}" 
-                class="btn-ghost text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 py-1.5 px-2 border border-rose-500/20"
+                class="btn-ghost text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 py-1.5 px-2 border border-rose-500/20 min-h-[32px]"
                 title="Cancel and withdraw this task"
               >
                 Cancel
@@ -1182,9 +1199,10 @@ function renderFilteredTasks(container: HTMLDivElement) {
                 data-action="bounty" 
                 data-task-id="${task.id}" 
                 data-task-title="${encodeURIComponent(task.title)}" 
-                class="btn-ghost text-xs font-semibold py-1.5 px-3 border border-yellow-500/40 text-yellow-500 hover:bg-yellow-500/10 flex items-center gap-1.5"
+                class="btn-ghost text-xs font-semibold py-1.5 px-3 border border-yellow-500/40 text-yellow-500 hover:bg-yellow-500/10 flex items-center gap-1.5 min-h-[32px]"
               >
-                <span>🎯 Stake Bounty</span>
+                <svg class="w-3.5 h-3.5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v3m0 12v3M3 12h3m12 0h3"/></svg>
+                <span>Stake Bounty</span>
               </button>
             ` : ''}
 
