@@ -173,42 +173,142 @@ select:-webkit-autofill {
   transition: background-color 5000s ease-in-out 0s;
 }
 
-/* Confetti & Celebration Animations for Weekly Achievers */
-.confetti {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  opacity: 0.75;
-  animation: confettiFall 4s linear infinite;
-  border-radius: 2px;
+/* -------------------------------------------------------------
+   Motion-Craft: Weekly Winner Modal & Victory Micro-Interactions
+   ------------------------------------------------------------- */
+
+/* Backdrop overlay with exponential out-ease */
+.winner-modal-backdrop {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.winner-modal-backdrop[data-state="open"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+.winner-modal-backdrop[data-state="closing"] {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms cubic-bezier(0.4, 0, 1, 1);
 }
 
-.c1 { left: 10%; background-color: #fbbf24; animation-delay: 0s; transform: rotate(15deg); }
-.c2 { left: 20%; background-color: #f97316; animation-delay: 1.2s; transform: rotate(45deg); }
-.c3 { left: 30%; background-color: #635bff; animation-delay: 0.5s; transform: rotate(30deg); }
-.c4 { left: 40%; background-color: #10b981; animation-delay: 2.1s; transform: rotate(60deg); }
-.c5 { left: 50%; background-color: #ec4899; animation-delay: 0.8s; transform: rotate(25deg); }
-.c6 { left: 60%; background-color: #00d4ff; animation-delay: 1.8s; transform: rotate(80deg); }
-.c7 { left: 70%; background-color: #fbbf24; animation-delay: 2.5s; transform: rotate(10deg); }
-.c8 { left: 80%; background-color: #f97316; animation-delay: 0.3s; transform: rotate(50deg); }
-.c9 { left: 88%; background-color: #a855f7; animation-delay: 1.5s; transform: rotate(35deg); }
-.c10 { left: 95%; background-color: #10b981; animation-delay: 2.8s; transform: rotate(70deg); }
-.c11 { left: 15%; background-color: #ec4899; animation-delay: 3.1s; transform: rotate(40deg); }
-.c12 { left: 75%; background-color: #635bff; animation-delay: 3.5s; transform: rotate(15deg); }
+/* Modal surface physics card */
+.winner-modal-surface {
+  opacity: 0;
+  transform: scale(0.95) translateY(12px);
+  transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.winner-modal-backdrop[data-state="open"] .winner-modal-surface {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+.winner-modal-backdrop[data-state="closing"] .winner-modal-surface {
+  opacity: 0;
+  transform: scale(0.97) translateY(8px);
+  transition: opacity 160ms cubic-bezier(0.4, 0, 1, 1),
+              transform 160ms cubic-bezier(0.4, 0, 1, 1);
+}
 
-@keyframes confettiFall {
+/* Authored 1-shot Victory Aura behind Crest */
+.crest-aura {
+  opacity: 0;
+  transform: scale(0.85);
+  animation: crestAuraIn 600ms cubic-bezier(0.16, 1, 0.3, 1) 100ms forwards;
+}
+@keyframes crestAuraIn {
   0% {
-    top: -20px;
-    transform: rotate(0deg) scale(0.8);
-    opacity: 0.9;
+    opacity: 0;
+    transform: scale(0.8);
   }
-  50% {
-    opacity: 0.8;
+  60% {
+    opacity: 0.9;
+    transform: scale(1.05);
   }
   100% {
-    top: 105%;
-    transform: rotate(720deg) scale(1.2);
+    opacity: 0.75;
+    transform: scale(1);
+  }
+}
+
+/* Staggered content entrance */
+.winner-stagger-1 {
+  animation: winnerStagger 280ms cubic-bezier(0.16, 1, 0.3, 1) 60ms backwards;
+}
+.winner-stagger-2 {
+  animation: winnerStagger 280ms cubic-bezier(0.16, 1, 0.3, 1) 110ms backwards;
+}
+.winner-stagger-3 {
+  animation: winnerStagger 280ms cubic-bezier(0.16, 1, 0.3, 1) 160ms backwards;
+}
+.winner-stagger-4 {
+  animation: winnerStagger 280ms cubic-bezier(0.16, 1, 0.3, 1) 210ms backwards;
+}
+@keyframes winnerStagger {
+  0% {
     opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 1-shot particle burst particles (radial outwards, 650ms, non-looping) */
+.particle-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  opacity: 0;
+  pointer-events: none;
+  animation: burstParticle 650ms cubic-bezier(0.16, 1, 0.3, 1) 150ms forwards;
+}
+@keyframes burstParticle {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.2);
+  }
+}
+
+/* Tactile button depression */
+.btn-tactile {
+  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1), background-color 150ms ease, border-color 150ms ease;
+}
+.btn-tactile:hover {
+  filter: brightness(1.04);
+}
+.btn-tactile:active {
+  transform: scale(0.98) translateY(1px);
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .winner-modal-backdrop,
+  .winner-modal-backdrop[data-state="closing"],
+  .winner-modal-surface,
+  .winner-modal-backdrop[data-state="closing"] .winner-modal-surface {
+    transition-duration: 0.01ms !important;
+    transform: none !important;
+  }
+  .crest-aura,
+  .winner-stagger-1,
+  .winner-stagger-2,
+  .winner-stagger-3,
+  .winner-stagger-4,
+  .particle-burst {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
