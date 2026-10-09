@@ -52,6 +52,10 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 @app.get("/")
+@app.get("/health")
+@app.get("/api")
+@app.get("/api/health")
 def health_check():
     return {"status": "online", "message": "Glazing API is running."}
+
 

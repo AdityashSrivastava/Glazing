@@ -170,9 +170,36 @@ class TaskFeedStats(BaseModel):
     open_bounties_count: int
     open_bounty_points: int
 
-@router.get("/stats", response_model=TaskFeedStats)
-async def get_task_feed_stats(current_user_id: str = Depends(get_current_user)):
-    """Provides high-level tactical telemetry for the Global Activity squad pulse in IST."""
+class TaskTelemetryResponse(BaseModel):
+    stats: TaskFeedStats
+    tasks: List[TaskBase]
+
+_stats_cache_time: float = 0.0
+_cached_stats: Optional[TaskFeedStats] = None
+
+_users_cache_time: float = 0.0
+_cached_user_map: dict[str, str] = {}
+
+def get_cached_user_map() -> dict[str, str]:
+    global _users_cache_time, _cached_user_map
+    now = time.time()
+    if now - _users_cache_time < 60.0 and _cached_user_map:
+        return _cached_user_map
+    try:
+        users_res = db.table("users").select("id, display_name").execute()
+        if users_res.data:
+            _cached_user_map = {str(u["id"]): u.get("display_name", "Operative") for u in users_res.data}
+            _users_cache_time = now
+    except Exception:
+        pass
+    return _cached_user_map
+
+def compute_pulse_stats() -> TaskFeedStats:
+    global _stats_cache_time, _cached_stats
+    now = time.time()
+    if _cached_stats and (now - _stats_cache_time < 5.0):
+        return _cached_stats
+
     now_ist = datetime.now(IST)
     today_date = now_ist.date().isoformat()
 
@@ -195,7 +222,7 @@ async def get_task_feed_stats(current_user_id: str = Depends(get_current_user)):
     bounties_res = db.table("bounties").select("id, points_at_stake").eq("status", "ACTIVE").execute()
     bounties = bounties_res.data or []
 
-    return TaskFeedStats(
+    stats = TaskFeedStats(
         active_in_progress_count=len(active_tasks),
         active_operatives_count=len(active_users),
         completed_today_count=len(completed_today),
@@ -204,16 +231,16 @@ async def get_task_feed_stats(current_user_id: str = Depends(get_current_user)):
         open_bounties_count=len(bounties),
         open_bounty_points=sum(int(b.get("points_at_stake") or 0) for b in bounties)
     )
+    _cached_stats = stats
+    _stats_cache_time = now
+    return stats
 
-@router.get("/feed", response_model=List[TaskBase])
-async def get_task_feed(current_user_id: str = Depends(get_current_user)):
-    """Fetches global task feed enriched with active bounties, sniper bonus, timer durations, and first blood."""
-    res = db.table("tasks").select("*").order("created_at", desc=True).execute()
+def build_task_feed(current_user_id: str) -> List[TaskBase]:
+    res = db.table("tasks").select("*").order("created_at", desc=True).limit(100).execute()
     tasks = res.data or []
     
-    # Map user_id -> display_name
-    users_res = db.table("users").select("id, display_name").execute()
-    user_map = {str(u["id"]): u.get("display_name", "Operative") for u in (users_res.data or [])}
+    # Map user_id -> display_name (cached for fast retrieval)
+    user_map = get_cached_user_map()
 
     # Map goal_id -> { title, is_private, user_id, category }
     goals_res = db.table("goals").select("id, title, user_id, category").execute()
@@ -303,6 +330,23 @@ async def get_task_feed(current_user_id: str = Depends(get_current_user)):
         masked_tasks.append(masked)
         
     return masked_tasks
+
+@router.get("/stats", response_model=TaskFeedStats)
+async def get_task_feed_stats(current_user_id: str = Depends(get_current_user)):
+    """Provides high-level tactical telemetry for the Global Activity squad pulse in IST."""
+    return compute_pulse_stats()
+
+@router.get("/feed", response_model=List[TaskBase])
+async def get_task_feed(current_user_id: str = Depends(get_current_user)):
+    """Fetches global task feed enriched with active bounties, sniper bonus, timer durations, and first blood."""
+    return build_task_feed(current_user_id)
+
+@router.get("/telemetry", response_model=TaskTelemetryResponse)
+async def get_task_telemetry(current_user_id: str = Depends(get_current_user)):
+    """Fetches both pulse stats and task feed in a single roundtrip for maximum speed."""
+    stats = compute_pulse_stats()
+    tasks = build_task_feed(current_user_id)
+    return TaskTelemetryResponse(stats=stats, tasks=tasks)
 
 @router.post("", response_model=TaskBase)
 async def create_task(task_in: TaskCreate, current_user_id: str = Depends(get_current_user)):

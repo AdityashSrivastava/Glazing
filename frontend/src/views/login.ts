@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { setOperativePassword } from '../api';
+import { setOperativePassword, warmupBackend } from '../api';
 
 const SQUAD_OPERATIVES = [
   { name: 'Adityash', email: 'adityash@glazing.com', initial: 'A' },
@@ -204,6 +204,7 @@ const EYE_CLOSED_SVG = `
 `;
 
 export function setupLoginLogic(navigateFn: (route: string) => void) {
+  warmupBackend();
   let isSetPasswordMode = false;
 
   const form = document.getElementById('login-form') as HTMLFormElement;
@@ -211,6 +212,9 @@ export function setupLoginLogic(navigateFn: (route: string) => void) {
   const currentPasswordInput = document.getElementById('current-password-input') as HTMLInputElement;
   const currentContainer = document.getElementById('current-pwd-container') as HTMLDivElement;
   const passwordInput = document.getElementById('password-input') as HTMLInputElement;
+
+  emailInput?.addEventListener('focus', () => warmupBackend(), { once: true });
+  passwordInput?.addEventListener('focus', () => warmupBackend(), { once: true });
   const confirmPasswordInput = document.getElementById('confirm-password-input') as HTMLInputElement;
   const confirmContainer = document.getElementById('confirm-pwd-container') as HTMLDivElement;
   const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;

@@ -43,6 +43,25 @@ interface FeedStats {
   open_bounty_points: number;
 }
 
+// Cache Helpers
+function getCachedStats(): FeedStats | null {
+  try {
+    const raw = sessionStorage.getItem('glazing_cached_pulse_stats');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function getCachedFeed(): Task[] | null {
+  try {
+    const raw = sessionStorage.getItem('glazing_cached_task_feed');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 // State
 let allTasks: Task[] = [];
 let allGoals: any[] = [];
@@ -54,6 +73,15 @@ let currentUserId = '';
 let myTotalPoints = 0;
 
 export function renderDashboard(): string {
+  const cachedStats = getCachedStats();
+  const activeVal = cachedStats ? `${cachedStats.active_operatives_count} Active` : `<span class="inline-block w-8 h-6 bg-white/10 dark:bg-zinc-800 rounded animate-pulse"></span>`;
+  const hoursVal = cachedStats ? `${cachedStats.hours_logged_today}h` : `<span class="inline-block w-12 h-6 bg-white/10 dark:bg-zinc-800 rounded animate-pulse"></span>`;
+  const pointsVal = cachedStats ? `${cachedStats.points_scored_today} pts` : `<span class="inline-block w-14 h-6 bg-white/10 dark:bg-zinc-800 rounded animate-pulse"></span>`;
+  const completedCountVal = cachedStats ? `${cachedStats.completed_today_count} tasks finalized today` : `Syncing squad activity...`;
+  const bountyPoolVal = cachedStats ? `${cachedStats.open_bounty_points} pts` : `<span class="inline-block w-14 h-6 bg-white/10 dark:bg-zinc-800 rounded animate-pulse"></span>`;
+  const bountiesCountVal = cachedStats ? `${cachedStats.open_bounties_count} active challenge contracts` : `Checking challenge pool...`;
+  const syncStatusText = cachedStats ? `Live Telemetry` : `Establishing telemetry uplink...`;
+
   return `
     <div class="min-h-screen bg-bg flex flex-col selection:bg-accent selection:text-white">
       ${renderNavbar('dashboard')}
@@ -69,7 +97,7 @@ export function renderDashboard(): string {
                 <span class="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></span>
                 Live Tactical Stream
               </span>
-              <span id="last-updated-text" class="text-[11px] font-mono text-muted">Synced just now</span>
+              <span id="last-updated-text" class="text-[11px] font-mono text-muted">${syncStatusText}</span>
             </div>
             <h2 class="text-3xl md:text-4xl font-extrabold text-primary tracking-tight">Global Activity</h2>
             <p class="text-body text-sm mt-1">Real-time squad execution feed, live task completions, and active field contracts.</p>
@@ -100,7 +128,7 @@ export function renderDashboard(): string {
               <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             </div>
             <div>
-              <div id="stat-active-in-field" class="text-2xl font-black font-mono text-primary">0</div>
+              <div id="stat-active-in-field" class="text-2xl font-black font-mono text-primary">${activeVal}</div>
               <p class="text-[11px] text-muted mt-0.5">Operatives actively working</p>
             </div>
           </div>
@@ -112,7 +140,7 @@ export function renderDashboard(): string {
               <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <div>
-              <div id="stat-hours-today" class="text-2xl font-black font-mono text-primary">0.0h</div>
+              <div id="stat-hours-today" class="text-2xl font-black font-mono text-primary">${hoursVal}</div>
               <p class="text-[11px] text-muted mt-0.5">IST squad dedication</p>
             </div>
           </div>
@@ -124,8 +152,8 @@ export function renderDashboard(): string {
               <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             </div>
             <div>
-              <div id="stat-points-today" class="text-2xl font-black font-mono text-primary">0 pts</div>
-              <p class="text-[11px] text-muted mt-0.5" id="stat-completed-count">0 tasks finalized today</p>
+              <div id="stat-points-today" class="text-2xl font-black font-mono text-primary">${pointsVal}</div>
+              <p class="text-[11px] text-muted mt-0.5" id="stat-completed-count">${completedCountVal}</p>
             </div>
           </div>
 
@@ -136,8 +164,8 @@ export function renderDashboard(): string {
               <span class="text-yellow-400 font-bold text-xs">🎯</span>
             </div>
             <div>
-              <div id="stat-bounty-pool" class="text-2xl font-black font-mono text-yellow-500">0 pts</div>
-              <p class="text-[11px] text-muted mt-0.5" id="stat-bounties-count">0 active challenge contracts</p>
+              <div id="stat-bounty-pool" class="text-2xl font-black font-mono text-yellow-500">${bountyPoolVal}</div>
+              <p class="text-[11px] text-muted mt-0.5" id="stat-bounties-count">${bountiesCountVal}</p>
             </div>
           </div>
         </div>
@@ -368,7 +396,19 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
   const closeQuickBountyBtn = document.getElementById('close-quick-bounty-btn') as HTMLButtonElement;
   const quickBountyForm = document.getElementById('quick-bounty-form') as HTMLFormElement;
 
-  // 1. Initial Load
+  // 0. Instant Hydration from Cache (Zero Perceived Latency)
+  const cachedFeed = getCachedFeed();
+  if (cachedFeed && cachedFeed.length > 0 && allTasks.length === 0) {
+    allTasks = cachedFeed;
+    updateFilterCounts();
+    renderFilteredTasks(feedContainer);
+  }
+  const cachedStats = getCachedStats();
+  if (cachedStats) {
+    updatePulseStats(cachedStats);
+  }
+
+  // 1. Initial Load (Parallel non-blocking telemetry sync)
   initDashboard();
 
   // 2. Weekly Achiever & Paneer Patties Party Protocol Check
@@ -685,25 +725,35 @@ async function initDashboard() {
     const { data: { session } } = await supabase.auth.getSession();
     currentUserId = session?.user.id || '';
 
-    // Fetch user profile for vault balance
-    try {
-      const me = await apiFetch('/users/me');
-      myTotalPoints = me.total_lifetime_points || 0;
-    } catch {}
+    // Fire all dashboard initialization in parallel for minimal latency
+    // 1. Telemetry stream (pulse stats & task feed) - highest priority
+    const telemetryPromise = loadFeedAndStats(feedContainer);
 
-    // Fetch goals for filter dropdown
-    try {
-      allGoals = await apiFetch('/goals');
-      const goalSelect = document.getElementById('filter-goal-select') as HTMLSelectElement;
-      if (goalSelect) {
-        goalSelect.innerHTML = '<option value="ALL">All Linked Goals</option>' + 
-          allGoals.map(g => `<option value="${escapeHtml(g.id)}">🎯 ${escapeHtml(g.title)}</option>`).join('');
-      }
-    } catch {}
+    // 2. User vault balance in parallel (non-blocking)
+    const mePromise = apiFetch('/users/me')
+      .then(me => {
+        myTotalPoints = me?.total_lifetime_points || 0;
+      })
+      .catch(() => {});
 
-    await loadFeedAndStats(feedContainer);
+    // 3. Goal filters in parallel (non-blocking)
+    const goalsPromise = apiFetch('/goals')
+      .then(goals => {
+        allGoals = goals || [];
+        const goalSelect = document.getElementById('filter-goal-select') as HTMLSelectElement;
+        if (goalSelect) {
+          goalSelect.innerHTML = '<option value="ALL">All Linked Goals</option>' + 
+            allGoals.map(g => `<option value="${escapeHtml(g.id)}">🎯 ${escapeHtml(g.title)}</option>`).join('');
+        }
+      })
+      .catch(() => {});
+
+    // 4. Daily gym status in parallel (non-blocking)
+    const gymPromise = updateGymCheckpointUI().catch(() => {});
+
+    await Promise.allSettled([telemetryPromise, mePromise, goalsPromise, gymPromise]);
   } catch (err: any) {
-    if (feedContainer) {
+    if (feedContainer && allTasks.length === 0) {
       feedContainer.innerHTML = `
         <div class="theme-card border-rose-500/30 bg-rose-500/5 text-center py-8">
            <span class="font-mono text-xs text-rose-500">Failed to initialize telemetry: ${escapeHtml(err.message)}</span>
@@ -715,16 +765,39 @@ async function initDashboard() {
 
 async function loadFeedAndStats(container: HTMLDivElement) {
   try {
-    const [tasks, stats] = await Promise.all([
-      apiFetch('/tasks/feed'),
-      apiFetch('/tasks/stats')
-    ]);
+    let tasks: Task[] = [];
+    let stats: FeedStats | null = null;
 
-    allTasks = tasks || [];
-    updatePulseStats(stats);
-    updateFilterCounts();
-    renderFilteredTasks(container);
-    await updateGymCheckpointUI();
+    try {
+      // 1. Single roundtrip fast telemetry endpoint
+      const telemetry = await apiFetch('/tasks/telemetry');
+      stats = telemetry.stats;
+      tasks = telemetry.tasks || [];
+    } catch {
+      // 2. Parallel fallback for standard endpoints
+      const [feedRes, statsRes] = await Promise.all([
+        apiFetch('/tasks/feed'),
+        apiFetch('/tasks/stats')
+      ]);
+      tasks = feedRes || [];
+      stats = statsRes;
+    }
+
+    if (stats) {
+      updatePulseStats(stats);
+      try {
+        sessionStorage.setItem('glazing_cached_pulse_stats', JSON.stringify(stats));
+      } catch {}
+    }
+
+    if (tasks) {
+      allTasks = tasks;
+      updateFilterCounts();
+      renderFilteredTasks(container);
+      try {
+        sessionStorage.setItem('glazing_cached_task_feed', JSON.stringify(tasks));
+      } catch {}
+    }
 
     const lastUpdated = document.getElementById('last-updated-text');
     if (lastUpdated) {
@@ -732,11 +805,13 @@ async function loadFeedAndStats(container: HTMLDivElement) {
       lastUpdated.textContent = `Synced at ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
     }
   } catch (err: any) {
-    container.innerHTML = `
-      <div class="theme-card border-rose-500/30 bg-rose-500/5 text-center py-8">
-         <span class="font-mono text-xs text-rose-500">Telemetry uplink error: ${escapeHtml(err.message)}</span>
-      </div>
-    `;
+    if (container && allTasks.length === 0) {
+      container.innerHTML = `
+        <div class="theme-card border-rose-500/30 bg-rose-500/5 text-center py-8">
+           <span class="font-mono text-xs text-rose-500">Telemetry uplink error: ${escapeHtml(err.message)}</span>
+        </div>
+      `;
+    }
   }
 }
 
@@ -798,6 +873,10 @@ function updatePulseStats(stats: FeedStats) {
   if (elCompleted) elCompleted.textContent = `${stats.completed_today_count} tasks finalized today`;
   if (elBountyPool) elBountyPool.textContent = `${stats.open_bounty_points} pts`;
   if (elBountiesCount) elBountiesCount.textContent = `${stats.open_bounties_count} active challenge contracts`;
+
+  try {
+    sessionStorage.setItem('glazing_cached_pulse_stats', JSON.stringify(stats));
+  } catch {}
 }
 
 function updateFilterCounts() {

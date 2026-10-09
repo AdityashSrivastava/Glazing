@@ -1,5 +1,6 @@
 import './style.css';
 import { supabase } from './supabase';
+import { warmupBackend } from './api';
 import { renderLogin, setupLoginLogic } from './views/login';
 import { renderDashboard, setupDashboardLogic } from './views/dashboard';
 import { renderLeaderboard, setupLeaderboardLogic } from './views/leaderboard';
@@ -8,6 +9,9 @@ import { renderAnalytics, setupAnalyticsLogic } from './views/analytics';
 import { renderBounties, setupBountiesLogic } from './views/bounties';
 import { renderTimer, setupTimerLogic } from './views/timer';
 import { renderLanding, setupLandingLogic } from './views/landing';
+
+// Warm up backend instance immediately in the background
+warmupBackend();
 
 const app = document.getElementById('app');
 

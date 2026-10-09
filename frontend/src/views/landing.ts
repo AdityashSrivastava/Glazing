@@ -1,3 +1,5 @@
+import { warmupBackend } from '../api';
+
 export function renderLanding(): string {
   return `
     <div class="min-h-screen bg-bg flex flex-col font-sans overflow-x-hidden selection:bg-accent/20 selection:text-accent">
@@ -304,6 +306,7 @@ export function renderLanding(): string {
 }
 
 export function setupLandingLogic(navigateFn: (route: string) => void) {
+  warmupBackend();
   const signInBtn = document.getElementById('nav-sign-in-btn');
   const darkToggle = document.getElementById('dark-mode-toggle');
   

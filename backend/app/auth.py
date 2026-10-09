@@ -5,6 +5,8 @@ import os
 from dotenv import load_dotenv
 from app.database import db
 
+import time
+
 load_dotenv()
 
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
@@ -12,6 +14,8 @@ SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 _verified_users: set[str] = set()
+# Fast token validation cache: token -> (user_id, expires_at_epoch)
+_token_cache: dict[str, tuple[str, float]] = {}
 
 def ensure_user_record(user_id: str, email: str | None = None, display_name_hint: str | None = None):
     if user_id in _verified_users:
@@ -35,6 +39,30 @@ def ensure_user_record(user_id: str, email: str | None = None, display_name_hint
         print(f"ensure_user_record error: {e}")
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
+    now = time.time()
+    
+    # 0. Check in-memory validation cache for instant zero-latency response
+    cached = _token_cache.get(token)
+    if cached:
+        cached_user_id, cached_exp = cached
+        if cached_exp > now:
+            return cached_user_id
+        else:
+            _token_cache.pop(token, None)
+
+    def _cache_user_token(u_id: str):
+        # Determine remaining lifespan from token exp claim or max 300s
+        ttl = 300.0
+        try:
+            unverified = jwt.decode(token, options={"verify_signature": False})
+            if "exp" in unverified:
+                exp_ts = float(unverified["exp"])
+                if exp_ts > now:
+                    ttl = min(ttl, exp_ts - now)
+        except Exception:
+            pass
+        _token_cache[token] = (u_id, now + ttl)
+
     # 1. Try fast local decode if symmetric HS256
     if SUPABASE_JWT_SECRET:
         try:
@@ -50,6 +78,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
                 user_id = payload.get("sub")
                 if user_id:
                     ensure_user_record(user_id, payload.get("email"), payload.get("user_metadata", {}).get("display_name"))
+                    _cache_user_token(user_id)
                     return user_id
         except Exception:
             pass
@@ -62,6 +91,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
             meta = user.user_metadata or {}
             display_name = meta.get("display_name")
             ensure_user_record(user.id, user.email, display_name)
+            _cache_user_token(user.id)
             return user.id
     except Exception as e:
         print(f"Supabase auth validation error: {e}")

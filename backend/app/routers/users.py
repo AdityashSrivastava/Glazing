@@ -337,7 +337,15 @@ class WeeklyAchieversResponse(BaseModel):
     past_weeks: List[WeekSummary] = []
     current_week_preview: Optional[WeekSummary] = None
 
+import time
+
+_weekly_cache_time: float = 0.0
+_cached_weekly_data: Optional[tuple] = None
+
 def compute_weekly_summaries(current_user_id: str):
+    global _weekly_cache_time, _cached_weekly_data
+    now_ts = time.time()
+
     now_ist = datetime.now(IST)
     today_date = now_ist.date()
 
@@ -352,65 +360,70 @@ def compute_weekly_summaries(current_user_id: str):
     seconds_until_midnight = max(0, int((tomorrow_midnight_ist - now_ist).total_seconds()))
     is_sunday = (now_ist.weekday() == 6)
 
-    # 1. Fetch all seeded squad users
-    users_res = db.table("users").select("id, display_name, avatar_url, total_lifetime_points").execute()
-    users = users_res.data or []
+    if _cached_weekly_data and (now_ts - _weekly_cache_time < 15.0):
+        users, resolved_map, weeks_dict = _cached_weekly_data
+    else:
+        # 1. Fetch all seeded squad users
+        users_res = db.table("users").select("id, display_name, avatar_url, total_lifetime_points").execute()
+        users = users_res.data or []
 
-    # 2. Fetch all completed tasks
-    tasks_res = db.table("tasks") \
-        .select("id, user_id, points_earned, actual_hours, completed_at") \
-        .eq("status", "COMPLETED") \
-        .execute()
-    all_completed = tasks_res.data or []
+        # 2. Fetch all completed tasks
+        tasks_res = db.table("tasks") \
+            .select("id, user_id, points_earned, actual_hours, completed_at") \
+            .eq("status", "COMPLETED") \
+            .execute()
+        all_completed = tasks_res.data or []
 
-    # 2b. Fetch party mandate resolutions
-    resolutions_res = db.table("tasks") \
-        .select("id, user_id, title, completed_at") \
-        .like("title", "%[PANEER_PATTIES_RESOLVED]%") \
-        .execute()
-    resolutions = resolutions_res.data or []
-    resolved_map = {}
-    for r in resolutions:
-        t_str = r.get("title", "")
-        for part in t_str.split():
-            clean_part = part.strip("[]:, -")
-            if "-W" in clean_part and len(clean_part) >= 7:
-                resolved_map[clean_part] = r
+        # 2b. Fetch party mandate resolutions
+        resolutions_res = db.table("tasks") \
+            .select("id, user_id, title, completed_at") \
+            .like("title", "%[PANEER_PATTIES_RESOLVED]%") \
+            .execute()
+        resolutions = resolutions_res.data or []
+        resolved_map = {}
+        for r in resolutions:
+            t_str = r.get("title", "")
+            for part in t_str.split():
+                clean_part = part.strip("[]:, -")
+                if "-W" in clean_part and len(clean_part) >= 7:
+                    resolved_map[clean_part] = r
 
-    # 3. Group tasks by ISO calendar week in IST
-    weeks_dict = {}
+        # 3. Group tasks by ISO calendar week in IST
+        weeks_dict = {}
 
-    for t in all_completed:
-        c_ist = parse_to_ist(t.get("completed_at"))
-        if not c_ist:
-            continue
-        t_monday = c_ist.date() - timedelta(days=c_ist.weekday())
-        w_id = f"{t_monday.year}-W{t_monday.isocalendar()[1]:02d}"
-        
-        if w_id not in weeks_dict:
-            t_sunday = t_monday + timedelta(days=6)
-            w_num = t_monday.isocalendar()[1]
-            weeks_dict[w_id] = {
-                "monday": t_monday,
-                "sunday": t_sunday,
-                "label": f"Week {w_num} ({t_monday.strftime('%b %d')} - {t_sunday.strftime('%b %d, %Y')})",
+        for t in all_completed:
+            c_ist = parse_to_ist(t.get("completed_at"))
+            if not c_ist:
+                continue
+            t_monday = c_ist.date() - timedelta(days=c_ist.weekday())
+            w_id = f"{t_monday.year}-W{t_monday.isocalendar()[1]:02d}"
+            
+            if w_id not in weeks_dict:
+                t_sunday = t_monday + timedelta(days=6)
+                w_num = t_monday.isocalendar()[1]
+                weeks_dict[w_id] = {
+                    "monday": t_monday,
+                    "sunday": t_sunday,
+                    "label": f"Week {w_num} ({t_monday.strftime('%b %d')} - {t_sunday.strftime('%b %d, %Y')})",
+                    "user_agg": {str(u["id"]): {"points": 0, "count": 0, "hours": 0.0} for u in users}
+                }
+            
+            uid = str(t.get("user_id"))
+            if uid in weeks_dict[w_id]["user_agg"]:
+                weeks_dict[w_id]["user_agg"][uid]["points"] += (t.get("points_earned") or 0)
+                weeks_dict[w_id]["user_agg"][uid]["count"] += 1
+                weeks_dict[w_id]["user_agg"][uid]["hours"] += float(t.get("actual_hours") or 0)
+
+        # Ensure current week is represented
+        if current_week_id not in weeks_dict:
+            weeks_dict[current_week_id] = {
+                "monday": current_monday,
+                "sunday": current_sunday,
+                "label": current_week_label,
                 "user_agg": {str(u["id"]): {"points": 0, "count": 0, "hours": 0.0} for u in users}
             }
-        
-        uid = str(t.get("user_id"))
-        if uid in weeks_dict[w_id]["user_agg"]:
-            weeks_dict[w_id]["user_agg"][uid]["points"] += (t.get("points_earned") or 0)
-            weeks_dict[w_id]["user_agg"][uid]["count"] += 1
-            weeks_dict[w_id]["user_agg"][uid]["hours"] += float(t.get("actual_hours") or 0)
-
-    # Ensure current week is represented
-    if current_week_id not in weeks_dict:
-        weeks_dict[current_week_id] = {
-            "monday": current_monday,
-            "sunday": current_sunday,
-            "label": current_week_label,
-            "user_agg": {str(u["id"]): {"points": 0, "count": 0, "hours": 0.0} for u in users}
-        }
+        _cached_weekly_data = (users, resolved_map, weeks_dict)
+        _weekly_cache_time = now_ts
 
     # 4. Build WeekSummary for each week
     summaries = []

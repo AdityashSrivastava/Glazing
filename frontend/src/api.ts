@@ -2,6 +2,20 @@ import { supabase } from './supabase';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
+let isWarmingUp = false;
+
+export function warmupBackend() {
+  if (isWarmingUp) return;
+  isWarmingUp = true;
+  // Non-blocking ping to wake up sleeping backend instances (e.g., Render free tier)
+  fetch(`${API_BASE_URL}/health`, { method: 'GET', keepalive: true }).catch(() => {
+    // Retry once in 2 seconds if first ping failed
+    setTimeout(() => {
+      fetch(`${API_BASE_URL}/health`, { method: 'GET' }).catch(() => {});
+    }, 2000);
+  });
+}
+
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   // 1. Get the current Supabase session
   const { data: { session } } = await supabase.auth.getSession();
@@ -29,6 +43,10 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   }
 
   return response.json();
+}
+
+export async function getTaskTelemetry() {
+  return apiFetch('/tasks/telemetry');
 }
 
 export async function setOperativePassword(email: string, password: string, currentPassword?: string) {
