@@ -32,7 +32,7 @@ export function renderLeaderboard(): string {
               <div id="ticking-countdown" class="text-lg font-black text-amber-400 mt-0.5">--:--:--</div>
             </div>
             <div class="px-5 py-3 rounded-2xl bg-surface border border-border text-left shadow-sm">
-              <div class="text-[10px] text-muted uppercase tracking-wider">Squad Points Today</div>
+              <div id="kpi-squad-label" class="text-[10px] text-muted uppercase tracking-wider">Squad Points Today</div>
               <div id="kpi-squad-today" class="text-lg font-black text-accent mt-0.5">-- pts</div>
             </div>
           </div>
@@ -40,12 +40,15 @@ export function renderLeaderboard(): string {
 
         <!-- Timeframe Switcher Tabs -->
         <div class="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-border/70">
-          <div class="flex items-center gap-2" id="timeframe-buttons">
+          <div class="flex items-center gap-2 flex-wrap" id="timeframe-buttons">
             <button class="timeframe-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-accent text-white shadow-sm cursor-pointer" data-tf="daily">
               <span>☀️</span> Daily Sprint
             </button>
             <button class="timeframe-btn px-4 py-2 rounded-xl text-xs font-semibold text-muted hover:text-primary transition-all flex items-center gap-2 cursor-pointer" data-tf="weekly">
               <span>📅</span> Weekly League
+            </button>
+            <button class="timeframe-btn px-4 py-2 rounded-xl text-xs font-semibold text-muted hover:text-primary transition-all flex items-center gap-2 cursor-pointer" data-tf="monthly">
+              <span>👑</span> Monthly Championship
             </button>
             <button class="timeframe-btn px-4 py-2 rounded-xl text-xs font-semibold text-muted hover:text-primary transition-all flex items-center gap-2 cursor-pointer" data-tf="all_time">
               <span>🏆</span> All-Time Pantheon
@@ -62,8 +65,40 @@ export function renderLeaderboard(): string {
           </div>
         </div>
 
-        <!-- Standard Leaderboard View (Daily, Weekly, All-Time) -->
+        <!-- Standard Leaderboard View (Daily, Weekly, Monthly, All-Time) -->
         <div id="standard-leaderboard-view" class="space-y-8">
+          
+          <!-- Monthly Championship Spotlight & Month Selector Bar -->
+          <div id="monthly-control-bar" class="hidden p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-accent/10 to-amber-500/15 border border-amber-400/40 flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-sm">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-3xl shrink-0 shadow-sm animate-pulse">
+                👑
+              </div>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-400/25 text-amber-300 border border-amber-400/50 uppercase tracking-widest shadow-sm">
+                    Top Operator of the Month
+                  </span>
+                  <span id="monthly-badge-status" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface/80 text-muted border border-border">Current Month</span>
+                </div>
+                <div class="flex items-baseline gap-2.5 mt-1">
+                  <h3 id="monthly-top-op-name" class="text-2xl md:text-3xl font-black text-amber-400 tracking-tight">--</h3>
+                  <span id="monthly-top-op-points" class="text-base font-mono font-bold text-primary">-- pts</span>
+                </div>
+                <p id="monthly-top-op-desc" class="text-xs text-muted mt-0.5 font-mono">
+                  Reigning supreme across all squad combat operations this month.
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 self-end md:self-center shrink-0">
+              <label for="monthly-month-select" class="text-xs font-mono text-muted uppercase font-semibold">Select Month:</label>
+              <select id="monthly-month-select" aria-label="Select monthly leaderboard period" class="theme-input py-2 px-3 text-xs font-mono font-bold border-amber-400/50 bg-surface text-primary rounded-xl cursor-pointer min-h-[38px] shadow-sm">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+          </div>
+
           <!-- Top 3 Podium Cards -->
           <div id="podium-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
             <!-- Dynamically populated -->
@@ -81,7 +116,7 @@ export function renderLeaderboard(): string {
           <!-- Complete Ranked Operative Table -->
           <div class="theme-card overflow-hidden p-0 border border-border shadow-sm">
             <div class="px-6 py-4 border-b border-border/70 flex items-center justify-between">
-              <h3 class="text-xs font-semibold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
+              <h3 id="table-registry-title" class="text-xs font-semibold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-accent inline-block"></span>
                 Operative Registry & Telemetry
               </h3>
@@ -138,6 +173,7 @@ export function renderLeaderboard(): string {
 }
 
 let currentTimeframe = 'daily';
+let currentSelectedMonth = '';
 let countdownInterval: any = null;
 let currentRemainingSeconds = 0;
 
@@ -158,19 +194,36 @@ export function setupLeaderboardLogic(navigateFn: (route: string) => void) {
       const stdView = document.getElementById('standard-leaderboard-view');
       const weeklyView = document.getElementById('weekly-achievers-view');
       const fbBadge = document.getElementById('first-blood-badge');
+      const monthlyBar = document.getElementById('monthly-control-bar');
 
       if (currentTimeframe === 'weekly_achievers') {
         if (stdView) stdView.classList.add('hidden');
         if (weeklyView) weeklyView.classList.remove('hidden');
         if (fbBadge) fbBadge.classList.add('hidden');
+        if (monthlyBar) monthlyBar.classList.add('hidden');
         fetchAndRenderWeeklyAchievers();
       } else {
         if (weeklyView) weeklyView.classList.add('hidden');
         if (stdView) stdView.classList.remove('hidden');
+        if (currentTimeframe === 'monthly') {
+          if (monthlyBar) monthlyBar.classList.remove('hidden');
+          if (fbBadge) fbBadge.classList.add('hidden');
+        } else {
+          if (monthlyBar) monthlyBar.classList.add('hidden');
+        }
         fetchAndRenderLeaderboard();
       }
     });
   });
+
+  // Month Selector Dropdown Change Listener
+  const monthlyMonthSelect = document.getElementById('monthly-month-select') as HTMLSelectElement;
+  if (monthlyMonthSelect) {
+    monthlyMonthSelect.addEventListener('change', () => {
+      currentSelectedMonth = monthlyMonthSelect.value;
+      fetchAndRenderLeaderboard();
+    });
+  }
 
   // Admin Ops
   const snapshotBtn = document.getElementById('generate-snapshots-btn') as HTMLButtonElement;
@@ -250,17 +303,76 @@ async function fetchAndRenderLeaderboard() {
   const myRankEl = document.getElementById('my-standing-rank');
 
   try {
-    const data = await apiFetch(`/users/leaderboard?timeframe=${currentTimeframe}`);
+    let url = `/users/leaderboard?timeframe=${currentTimeframe}`;
+    if (currentTimeframe === 'monthly' && currentSelectedMonth) {
+      url += `&month=${encodeURIComponent(currentSelectedMonth)}`;
+    }
+
+    const data = await apiFetch(url);
     const operatives = data.operatives || [];
     const meta = data.meta || {};
+
+    const kpiSquadLabel = document.getElementById('kpi-squad-label');
+    const tableRegistryTitle = document.getElementById('table-registry-title');
+    const monthlyBar = document.getElementById('monthly-control-bar');
+    const monthlySelect = document.getElementById('monthly-month-select') as HTMLSelectElement;
+    const monthlyTopName = document.getElementById('monthly-top-op-name');
+    const monthlyTopPts = document.getElementById('monthly-top-op-points');
+    const monthlyTopDesc = document.getElementById('monthly-top-op-desc');
+    const monthlyBadgeStatus = document.getElementById('monthly-badge-status');
 
     // Start live midnight countdown
     if (meta.seconds_until_midnight_ist) {
       startCountdown(meta.seconds_until_midnight_ist);
     }
 
-    if (kpiSquad) {
-      kpiSquad.textContent = `${meta.squad_total_points_today || 0} pts`;
+    // Monthly-specific control bar & top operator spotlight
+    if (currentTimeframe === 'monthly') {
+      if (monthlyBar) monthlyBar.classList.remove('hidden');
+
+      if (monthlySelect && meta.available_months && meta.available_months.length > 0) {
+        const activeKey = currentSelectedMonth || meta.selected_month;
+        monthlySelect.innerHTML = meta.available_months.map((m: any) => `
+          <option value="${m.key}" ${m.key === activeKey ? 'selected' : ''}>
+            ${escapeHtml(m.label)} ${m.is_current ? '(Active Month)' : '(Concluded)'}
+          </option>
+        `).join('');
+        currentSelectedMonth = activeKey;
+      }
+
+      if (monthlyTopName) monthlyTopName.textContent = meta.top_operator_name || 'None';
+      if (monthlyTopPts) monthlyTopPts.textContent = `${meta.top_operator_points || 0} pts`;
+      if (monthlyBadgeStatus) {
+        const isCurrent = meta.available_months?.find((m: any) => m.key === meta.selected_month)?.is_current;
+        monthlyBadgeStatus.textContent = isCurrent ? 'Active Cycle' : 'Concluded';
+        monthlyBadgeStatus.className = isCurrent 
+          ? 'text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 font-bold' 
+          : 'text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-surface text-muted border border-border';
+      }
+      if (monthlyTopDesc) {
+        monthlyTopDesc.textContent = `Top operative crowned for ${meta.selected_month_label || 'this month'}.`;
+      }
+
+      if (kpiSquadLabel) kpiSquadLabel.textContent = `Squad Points in ${meta.selected_month_label || 'Month'}`;
+      if (kpiSquad) kpiSquad.textContent = `${meta.squad_total_points_month || 0} pts`;
+      if (tableRegistryTitle) {
+        tableRegistryTitle.innerHTML = `<span class="w-2 h-2 rounded-full bg-accent inline-block"></span> Operative Registry // ${escapeHtml(meta.selected_month_label || 'Monthly Championship')}`;
+      }
+    } else {
+      if (monthlyBar) monthlyBar.classList.add('hidden');
+      if (kpiSquadLabel) {
+        kpiSquadLabel.textContent = currentTimeframe === 'weekly' 
+          ? 'Squad Points This Week' 
+          : currentTimeframe === 'all_time' 
+            ? 'Squad Lifetime Vault' 
+            : 'Squad Points Today';
+      }
+      if (kpiSquad) {
+        kpiSquad.textContent = `${meta.squad_total_points_today || 0} pts`;
+      }
+      if (tableRegistryTitle) {
+        tableRegistryTitle.innerHTML = `<span class="w-2 h-2 rounded-full bg-accent inline-block"></span> Operative Registry & Telemetry // ${currentTimeframe === 'weekly' ? 'Weekly League' : currentTimeframe === 'all_time' ? 'All-Time Pantheon' : 'Daily Sprint'}`;
+      }
     }
 
     // First Blood Display
@@ -281,6 +393,16 @@ async function fetchAndRenderLeaderboard() {
       const top2 = operatives[1];
       const top3 = operatives[2];
 
+      const scoreSubtitle = currentTimeframe === 'all_time' 
+        ? 'Lifetime Score' 
+        : currentTimeframe === 'weekly' 
+          ? 'Weekly Points' 
+          : currentTimeframe === 'monthly' 
+            ? `${meta.selected_month_label || 'Monthly'} Points` 
+            : "Today's Points";
+
+      const top1Crown = currentTimeframe === 'monthly' ? '👑 #1 TOP OPERATOR' : '👑 #1 CHAMPION';
+
       const renderPodiumCard = (op: any, rank: number, crown: string, badgeBg: string, borderColor: string, heightOffset: string) => `
         <div data-rank="${rank}" class="theme-card p-6 flex flex-col items-center text-center relative overflow-hidden transition-all duration-300 hover:border-accent/60 ${heightOffset} ${borderColor}">
           <div class="text-3xl mb-1.5">${crown}</div>
@@ -300,7 +422,7 @@ async function fetchAndRenderLeaderboard() {
           <div class="mt-auto w-full pt-3 border-t border-border/60">
             <div class="text-2xl font-black font-mono text-primary">${op.points}</div>
             <div class="text-[10px] font-mono text-muted uppercase mt-0.5">
-              ${currentTimeframe === 'all_time' ? 'Lifetime Score' : currentTimeframe === 'weekly' ? 'Weekly Points' : "Today's Points"}
+              ${scoreSubtitle}
             </div>
             
             <div class="flex items-center justify-center gap-3 mt-2 text-[11px] font-mono text-muted">
@@ -315,7 +437,7 @@ async function fetchAndRenderLeaderboard() {
       // Order on desktop: #2 on left, #1 in center (elevated), #3 on right
       podiumContainer.innerHTML = `
         ${renderPodiumCard(top2, 2, '🥈 #2', 'bg-slate-400/10 text-slate-300 border-slate-400/30', 'border-slate-500/30', 'mt-4 md:mt-6')}
-        ${renderPodiumCard(top1, 1, '👑 #1 CHAMPION', 'bg-amber-400/15 text-amber-400 border-amber-400/40 shadow-lg', 'border-amber-400/40 bg-amber-400/[0.02]', 'mt-0 scale-105 z-10')}
+        ${renderPodiumCard(top1, 1, top1Crown, 'bg-amber-400/15 text-amber-400 border-amber-400/40 shadow-lg', 'border-amber-400/40 bg-amber-400/[0.02]', 'mt-0 scale-105 z-10')}
         ${renderPodiumCard(top3, 3, '🥉 #3', 'bg-amber-700/10 text-amber-600 border-amber-700/30', 'border-amber-700/30', 'mt-4 md:mt-8')}
       `;
     }
@@ -325,12 +447,20 @@ async function fetchAndRenderLeaderboard() {
       myBanner.classList.remove('hidden');
       myRankEl.textContent = `#${meta.my_rank}`;
 
+      const timeframeLabel = currentTimeframe === 'monthly'
+        ? `in ${meta.selected_month_label || 'this month'}`
+        : currentTimeframe === 'weekly'
+          ? 'this week'
+          : currentTimeframe === 'all_time'
+            ? 'all-time'
+            : 'today';
+
       if (meta.my_rank === 1) {
-        myText.innerHTML = `👑 <strong>Dominating the matrix!</strong> You are in 1st place with <strong>${meta.my_points} pts</strong>. Hold the lead until midnight freeze!`;
+        myText.innerHTML = `👑 <strong>Dominating the matrix!</strong> You are in 1st place ${timeframeLabel} with <strong>${meta.my_points} pts</strong>!`;
       } else {
         const leader = operatives[0];
         const gap = (leader?.points || 0) - (meta.my_points || 0);
-        myText.innerHTML = `You are currently in <strong>#${meta.my_rank} place</strong> (${meta.my_points} pts). You are <strong>${gap} points behind</strong> #1 ${escapeHtml(leader?.display_name || 'Operative')}.`;
+        myText.innerHTML = `You are currently in <strong>#${meta.my_rank} place</strong> ${timeframeLabel} (${meta.my_points} pts). You are <strong>${gap} points behind</strong> #1 ${escapeHtml(leader?.display_name || 'Operative')}.`;
       }
     }
 

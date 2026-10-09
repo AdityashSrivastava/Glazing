@@ -36,6 +36,11 @@ class OperativeRanking(BaseModel):
     tier: str = "Operative"
     is_me: bool = False
 
+class AvailableMonthItem(BaseModel):
+    key: str
+    label: str
+    is_current: bool = False
+
 class LeaderboardMeta(BaseModel):
     ist_today: str
     seconds_until_midnight_ist: int
@@ -44,6 +49,13 @@ class LeaderboardMeta(BaseModel):
     squad_total_tasks_today: int
     my_rank: Optional[int] = None
     my_points: Optional[int] = None
+    selected_month: Optional[str] = None
+    selected_month_label: Optional[str] = None
+    available_months: Optional[List[AvailableMonthItem]] = None
+    top_operator_name: Optional[str] = None
+    top_operator_points: Optional[int] = None
+    squad_total_points_month: Optional[int] = None
+    squad_total_tasks_month: Optional[int] = None
 
 class LeaderboardResponse(BaseModel):
     timeframe: str
@@ -93,16 +105,18 @@ def calculate_tier(points: int) -> str:
 
 @router.get("/leaderboard", response_model=LeaderboardResponse)
 async def get_leaderboard(
-    timeframe: str = Query("daily", pattern="^(daily|weekly|all_time)$"),
+    timeframe: str = Query("daily", pattern="^(daily|weekly|monthly|all_time)$"),
+    month: Optional[str] = Query(None, description="Month in YYYY-MM format, e.g. 2026-10"),
     current_user_id: str = Depends(get_current_user)
 ):
     """
-    Returns live squad leaderboard rankings with daily, weekly, or all-time timeframes,
-    ticking midnight IST countdown, and First Blood bonus telemetry.
+    Returns live squad leaderboard rankings with daily, weekly, monthly, or all-time timeframes,
+    ticking midnight IST countdown, First Blood bonus telemetry, and top operator month standings.
     """
     now_ist = datetime.now(IST)
     today_date = now_ist.date().isoformat()
     today_start_ist = f"{today_date}T00:00:00+05:30"
+    current_month_key = now_ist.strftime("%Y-%m")
 
     # Monday 00:00 IST of current week
     monday_ist = now_ist - timedelta(days=now_ist.weekday())
@@ -125,8 +139,37 @@ async def get_leaderboard(
         .execute()
     all_completed = all_completed_res.data or []
 
+    # Discover all distinct months from completed tasks
+    distinct_months = set()
+    for t in all_completed:
+        c_ist = parse_to_ist(t.get("completed_at"))
+        if c_ist:
+            distinct_months.add(c_ist.strftime("%Y-%m"))
+    distinct_months.add(current_month_key)
+    sorted_month_keys = sorted(list(distinct_months), reverse=True)
+
+    available_months: List[AvailableMonthItem] = []
+    for m_key in sorted_month_keys:
+        try:
+            dt_m = datetime.strptime(m_key, "%Y-%m")
+            lbl = dt_m.strftime("%B %Y")
+        except Exception:
+            lbl = m_key
+        available_months.append(AvailableMonthItem(
+            key=m_key,
+            label=lbl,
+            is_current=(m_key == current_month_key)
+        ))
+
+    selected_month = month if (month and month in distinct_months) else current_month_key
+    try:
+        selected_month_label = datetime.strptime(selected_month, "%Y-%m").strftime("%B %Y")
+    except Exception:
+        selected_month_label = selected_month
+
     today_tasks = []
     week_tasks = []
+    month_tasks = []
     for t in all_completed:
         c_ist = parse_to_ist(t.get("completed_at"))
         if c_ist:
@@ -134,6 +177,8 @@ async def get_leaderboard(
                 today_tasks.append((c_ist, t))
             if c_ist.date() >= monday_ist.date():
                 week_tasks.append(t)
+            if c_ist.strftime("%Y-%m") == selected_month:
+                month_tasks.append(t)
 
     # Sort today tasks by earliest completion
     today_tasks.sort(key=lambda x: x[0])
@@ -147,8 +192,14 @@ async def get_leaderboard(
     squad_total_points_today = sum(t.get("points_earned", 0) or 0 for t in today_tasks_list)
     squad_total_tasks_today = len(today_tasks_list)
 
+    # Squad totals month
+    squad_total_points_month = sum(t.get("points_earned", 0) or 0 for t in month_tasks)
+    squad_total_tasks_month = len(month_tasks)
+
     # 3. Select active dataset
-    if timeframe == "weekly":
+    if timeframe == "monthly":
+        active_dataset = month_tasks
+    elif timeframe == "weekly":
         active_dataset = week_tasks
     elif timeframe == "daily":
         active_dataset = today_tasks_list
@@ -209,6 +260,10 @@ async def get_leaderboard(
             my_rank = op["rank"]
             my_points = op["points"]
 
+    top_op = operatives_list[0] if operatives_list else None
+    top_operator_name = top_op["display_name"] if top_op else None
+    top_operator_points = top_op["points"] if top_op else None
+
     return {
         "timeframe": timeframe,
         "operatives": [OperativeRanking(**op) for op in operatives_list],
@@ -219,7 +274,14 @@ async def get_leaderboard(
             squad_total_points_today=squad_total_points_today,
             squad_total_tasks_today=squad_total_tasks_today,
             my_rank=my_rank,
-            my_points=my_points
+            my_points=my_points,
+            selected_month=selected_month,
+            selected_month_label=selected_month_label,
+            available_months=available_months,
+            top_operator_name=top_operator_name,
+            top_operator_points=top_operator_points,
+            squad_total_points_month=squad_total_points_month,
+            squad_total_tasks_month=squad_total_tasks_month
         )
     }
 
