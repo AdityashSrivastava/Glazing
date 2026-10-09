@@ -2,6 +2,7 @@ import { supabase } from '../supabase';
 import { apiFetch, getGymStatus, checkinGym, getWeeklyAchievers, resolveWeeklyParty } from '../api';
 import { renderCompleteModal, openCompleteTaskModal, setupCompleteModalLogic } from './components/complete_modal';
 import { renderWeeklyWinnerModal, setupWeeklyWinnerModalLogic, openWeeklyWinnerModal } from './components/weekly_winner_modal';
+import { renderGymModal, setupGymModalLogic, openGymModal } from './components/gym_modal';
 import { renderNavbar, setupNavbarLogic, showNotification } from './components/navbar';
 import { escapeHtml, safeUrl } from '../utils';
 
@@ -323,6 +324,7 @@ export function renderDashboard(): string {
       <!-- Modals -->
       ${renderCompleteModal()}
       ${renderWeeklyWinnerModal()}
+      ${renderGymModal()}
       
       <!-- Inline Quick Bounty Staking Modal -->
       <div id="quick-bounty-modal" class="fixed inset-0 bg-bg/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-opacity duration-200">
@@ -386,6 +388,7 @@ export function renderDashboard(): string {
 export function setupDashboardLogic(navigateFn: (route: string) => void) {
   setupNavbarLogic(navigateFn);
   setupWeeklyWinnerModalLogic();
+  setupGymModalLogic();
 
   const refreshBtn = document.getElementById('refresh-feed-btn') as HTMLButtonElement;
   const feedContainer = document.getElementById('feed-container') as HTMLDivElement;
@@ -653,10 +656,11 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
       gymBtn.disabled = true;
       gymBtn.textContent = 'Registering...';
       try {
-        await checkinGym();
+        const gymStatus = await checkinGym();
         showNotification('Gym Checkpoint Verified! +5 points scored today!', 'success');
         await updateGymCheckpointUI();
         await loadFeedAndStats(feedContainer);
+        openGymModal(gymStatus);
       } catch (err: any) {
         alert(`Failed to check in: ${err.message}`);
         gymBtn.disabled = false;
@@ -835,15 +839,24 @@ async function updateGymCheckpointUI() {
       if (status.streak_days > 0) {
         gymStreakBadge.classList.remove('hidden');
         gymStreakBadge.classList.add('inline-flex');
+        gymStreakBadge.classList.add('cursor-pointer');
         gymStreakBadge.innerHTML = `<svg class="w-3 h-3 text-amber-400 inline-block mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg><span>${status.streak_days}-day streak</span>`;
+        gymStreakBadge.onclick = () => openGymModal(status);
+        gymStreakBadge.title = 'Click to view physical conditioning streak';
       } else {
         gymStreakBadge.classList.add('hidden');
         gymStreakBadge.classList.remove('inline-flex');
+        gymStreakBadge.onclick = null;
       }
     }
 
     if (status.checked_today) {
-      if (gymCheckedView) gymCheckedView.classList.remove('hidden');
+      if (gymCheckedView) {
+        gymCheckedView.classList.remove('hidden');
+        gymCheckedView.classList.add('cursor-pointer');
+        gymCheckedView.onclick = () => openGymModal(status);
+        gymCheckedView.title = 'Click to view physical conditioning celebration';
+      }
       if (gymCheckinBtn) gymCheckinBtn.classList.add('hidden');
       if (gymCheckedText) {
         const timeStr = status.checked_at ? new Date(status.checked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
