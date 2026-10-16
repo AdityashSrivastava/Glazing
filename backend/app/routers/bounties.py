@@ -6,6 +6,7 @@ from uuid import UUID
 from app.auth import get_current_user
 from app.database import db
 from app.models import BountyBase
+from app.points import atomic_deduct_points, atomic_add_points
 
 router = APIRouter(prefix="/api/bounties", tags=["Bounties"])
 
@@ -136,13 +137,17 @@ async def create_bounty(bounty_in: BountyCreate, current_user_id: str = Depends(
     if not user_res.data:
         raise HTTPException(status_code=404, detail="User profile not found.")
         
-    current_points = user_res.data[0].get("total_lifetime_points", 0)
+    current_points = int(user_res.data[0].get("total_lifetime_points") or 0)
     if current_points < bounty_in.points_at_stake:
         raise HTTPException(status_code=400, detail=f"Insufficient points ({current_points} available) to stake {bounty_in.points_at_stake} pts.")
 
-    # Deduct points (Escrow)
-    new_total = current_points - bounty_in.points_at_stake
-    db.table("users").update({"total_lifetime_points": new_total}).eq("id", current_user_id).execute()
+    # Deduct points atomically (Escrow - TOCTOU race condition defense)
+    deducted = atomic_deduct_points(current_user_id, bounty_in.points_at_stake)
+    if not deducted:
+        raise HTTPException(
+            status_code=400,
+            detail="Transaction conflict: Unable to lock points for escrow. Please verify your current balance and retry."
+        )
 
     # Create Bounty
     now_ist = datetime.now(IST).isoformat()
@@ -188,12 +193,8 @@ async def retract_bounty(bounty_id: UUID, current_user_id: str = Depends(get_cur
     if bounty["status"] != "ACTIVE":
         raise HTTPException(status_code=400, detail="Cannot retract a resolved bounty contract.")
 
-    # 2. Refund points to issuer
-    user_res = db.table("users").select("total_lifetime_points").eq("id", current_user_id).execute()
-    if user_res.data:
-        curr_pts = user_res.data[0].get("total_lifetime_points", 0)
-        refund_pts = bounty["points_at_stake"]
-        db.table("users").update({"total_lifetime_points": curr_pts + refund_pts}).eq("id", current_user_id).execute()
+    # 2. Refund points to issuer atomically
+    atomic_add_points(current_user_id, int(bounty.get("points_at_stake", 0)))
 
     # 3. Delete the bounty row
     db.table("bounties").delete().eq("id", str(bounty_id)).execute()

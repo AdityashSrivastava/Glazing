@@ -4,6 +4,7 @@ from typing import Optional
 from datetime import datetime, timezone, timedelta
 from app.auth import get_current_user
 from app.database import db
+from app.points import atomic_add_points
 
 router = APIRouter(prefix="/api/gym", tags=["Gym"])
 
@@ -128,11 +129,8 @@ async def checkin_gym(current_user_id: str = Depends(get_current_user)):
     }
     db.table("tasks").insert(new_task).execute()
 
-    # 3. Update user total lifetime points
-    user_res = db.table("users").select("total_lifetime_points").eq("id", current_user_id).execute()
-    if user_res.data:
-        curr_pts = int(user_res.data[0].get("total_lifetime_points") or 0)
-        db.table("users").update({"total_lifetime_points": curr_pts + 5}).eq("id", current_user_id).execute()
+    # 3. Update user total lifetime points atomically
+    atomic_add_points(current_user_id, 5)
 
     # 4. Sync daily snapshot for leaderboard
     try:

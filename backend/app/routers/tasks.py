@@ -10,6 +10,7 @@ from app.models import TaskBase, mask_private_task
 from app.auth import get_current_user
 from app.database import db
 from app.routers.timer import get_all_tasks_focus_durations, get_tasks_focus_durations
+from app.points import atomic_add_points, atomic_deduct_points
 
 router = APIRouter(prefix="/api/tasks", tags=["Tasks"])
 
@@ -545,13 +546,10 @@ async def complete_task(task_id: UUID, payload: TaskComplete, current_user_id: s
     update_res = db.table("tasks").update(updated_task).eq("id", str(task_id)).execute()
     completed = update_res.data[0] if (update_res.data and len(update_res.data) > 0) else {**task, **updated_task}
     
-    # 4. Increment User Total Lifetime Points
-    user_res = db.table("users").select("display_name, total_lifetime_points").eq("id", current_user_id).execute()
-    user_name = "Operative"
-    if user_res.data:
-        user_name = user_res.data[0].get("display_name", "Operative")
-        new_total = (user_res.data[0].get("total_lifetime_points") or 0) + points
-        db.table("users").update({"total_lifetime_points": new_total}).eq("id", current_user_id).execute()
+    # 4. Increment User Total Lifetime Points Atomically
+    user_res = db.table("users").select("display_name").eq("id", current_user_id).execute()
+    user_name = user_res.data[0].get("display_name", "Operative") if user_res.data else "Operative"
+    atomic_add_points(current_user_id, points)
 
     # 5. Synchronize Daily Snapshot for Weekly Leaderboard Accuracy
     try:
@@ -656,15 +654,12 @@ async def delete_task(task_id: UUID, current_user_id: str = Depends(get_current_
     if task["status"] == "COMPLETED":
         raise HTTPException(status_code=400, detail="Cannot delete an already completed task")
 
-    # Refund active bounties on this task to their issuers
+    # Refund active bounties on this task to their issuers atomically
     bounties_res = db.table("bounties").select("id, issuer_id, points_at_stake").eq("target_task_id", str(task_id)).eq("status", "ACTIVE").execute()
     for b in (bounties_res.data or []):
         issuer_id = str(b["issuer_id"])
         pts = int(b.get("points_at_stake", 0))
-        u_res = db.table("users").select("total_lifetime_points").eq("id", issuer_id).execute()
-        if u_res.data:
-            current_pts = u_res.data[0].get("total_lifetime_points", 0)
-            db.table("users").update({"total_lifetime_points": current_pts + pts}).eq("id", issuer_id).execute()
+        atomic_add_points(issuer_id, pts)
         db.table("bounties").delete().eq("id", str(b["id"])).execute()
 
     # Delete the task
@@ -686,15 +681,12 @@ async def abandon_task(task_id: UUID, current_user_id: str = Depends(get_current
         raise HTTPException(status_code=400, detail=f"Cannot abandon task with status {task['status']}")
 
     now_ist = datetime.now(IST).isoformat()
-    # Refund active bounties
+    # Refund active bounties atomically
     bounties_res = db.table("bounties").select("id, issuer_id, points_at_stake").eq("target_task_id", str(task_id)).eq("status", "ACTIVE").execute()
     for b in (bounties_res.data or []):
         issuer_id = str(b["issuer_id"])
         pts = int(b.get("points_at_stake", 0))
-        u_res = db.table("users").select("total_lifetime_points").eq("id", issuer_id).execute()
-        if u_res.data:
-            current_pts = u_res.data[0].get("total_lifetime_points", 0)
-            db.table("users").update({"total_lifetime_points": current_pts + pts}).eq("id", issuer_id).execute()
+        atomic_add_points(issuer_id, pts)
         db.table("bounties").delete().eq("id", str(b["id"])).execute()
 
     updated = {

@@ -226,3 +226,43 @@ DROP POLICY IF EXISTS "Public can view proofs" ON storage.objects;
 CREATE POLICY "Public can view proofs" ON storage.objects
     FOR SELECT USING (bucket_id = 'proof_uploads');
 
+-- 14. ATOMIC POINT MUTATION PROCEDURES (TOCTOU RACE CONDITION DEFENSE)
+CREATE OR REPLACE FUNCTION public.deduct_user_points(p_user_id UUID, p_amount INT)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_rows INT;
+BEGIN
+    IF p_amount <= 0 THEN
+        RETURN FALSE;
+    END IF;
+
+    UPDATE public.users
+    SET total_lifetime_points = total_lifetime_points - p_amount,
+        updated_at = NOW()
+    WHERE id = p_user_id AND total_lifetime_points >= p_amount;
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    RETURN v_rows > 0;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.add_user_points(p_user_id UUID, p_amount INT)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_rows INT;
+BEGIN
+    IF p_amount <= 0 THEN
+        RETURN FALSE;
+    END IF;
+
+    UPDATE public.users
+    SET total_lifetime_points = total_lifetime_points + p_amount,
+        updated_at = NOW()
+    WHERE id = p_user_id;
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    RETURN v_rows > 0;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
