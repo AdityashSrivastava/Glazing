@@ -133,11 +133,40 @@ class TaskComplete(BaseModel):
         return cleaned
 
 
+ALLOWED_PROOF_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+ALLOWED_PROOF_MIME_TYPES = {"image/png", "image/jpeg", "image/webp"}
+
+def _is_valid_proof_signature(content: bytes, ext: str) -> bool:
+    if ext == ".png" and content.startswith(b'\x89PNG\r\n\x1a\n'):
+        return True
+    if ext in [".jpg", ".jpeg"] and content.startswith(b'\xff\xd8\xff'):
+        return True
+    if ext == ".webp" and content[:4] == b'RIFF' and len(content) > 12 and content[8:12] == b'WEBP':
+        return True
+    return False
+
 @router.post("/upload-proof")
 async def upload_task_proof(file: UploadFile = File(...), current_user_id: str = Depends(get_current_user)):
-    """Uploads a screenshot or proof asset directly to the proof_uploads Supabase Storage bucket."""
+    """Uploads a verified screenshot proof asset to the proof_uploads Supabase Storage bucket."""
     if not file or not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
+
+    # 1. File extension validation
+    _, raw_ext = os.path.splitext(file.filename or "")
+    ext = raw_ext.lower().strip()
+    if ext not in ALLOWED_PROOF_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file extension '{ext}'. Only image proof assets ({', '.join(sorted(list(ALLOWED_PROOF_EXTENSIONS)))}) are permitted."
+        )
+
+    # 2. Content-Type header validation
+    content_type = (file.content_type or "").lower().strip()
+    if content_type not in ALLOWED_PROOF_MIME_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Only image proof assets (.png, .jpg, .webp) are permitted."
+        )
 
     content = await file.read()
     if len(content) == 0:
@@ -145,9 +174,18 @@ async def upload_task_proof(file: UploadFile = File(...), current_user_id: str =
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Max size is 10MB.")
 
-    safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', file.filename)
+    # 3. Binary magic signature verification
+    if not _is_valid_proof_signature(content, ext):
+        raise HTTPException(
+            status_code=400,
+            detail="File content header does not match a valid binary image signature."
+        )
+
+    # 4. Generate clean sanitized storage path
+    raw_basename = os.path.splitext(file.filename)[0]
+    safe_base = re.sub(r'[^a-zA-Z0-9_\-]', '_', raw_basename)[:64]
+    safe_name = f"{safe_base}{ext}"
     dest_path = f"{current_user_id[:8]}_{int(time.time())}_{safe_name}"
-    content_type = file.content_type or "image/png"
 
     try:
         db.storage.from_("proof_uploads").upload(dest_path, content, {"content-type": content_type})
