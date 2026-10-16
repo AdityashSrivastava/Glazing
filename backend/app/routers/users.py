@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
-from app.auth import get_current_user, verify_cron_secret_or_user
+from app.auth import get_current_user, verify_cron_secret
 from app.database import db
 from app.models import UserBase
 
@@ -287,7 +287,7 @@ async def get_leaderboard(
     }
 
 @router.post("/snapshots/generate")
-async def generate_daily_snapshots(caller: str = Depends(verify_cron_secret_or_user)):
+async def generate_daily_snapshots(caller: str = Depends(verify_cron_secret)):
     """
     Administrative endpoint to generate daily snapshots.
     Triggered by a cron job at 11:59 PM IST.

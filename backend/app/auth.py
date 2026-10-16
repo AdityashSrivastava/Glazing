@@ -103,30 +103,52 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     )
 
 from fastapi import Header
+import secrets
 
 CRON_SECRET = os.getenv("CRON_SECRET", "")
 
-async def verify_cron_secret_or_user(
+def get_cron_secret() -> str:
+    return (os.getenv("CRON_SECRET") or CRON_SECRET or "").strip()
+
+async def verify_cron_secret(
     authorization: str | None = Header(None),
     x_cron_secret: str | None = Header(None, alias="X-Cron-Secret")
 ) -> str:
-    # 1. Check if valid CRON_SECRET is provided via header
-    if CRON_SECRET and x_cron_secret and x_cron_secret.strip() == CRON_SECRET.strip():
-        return "system_cron"
-    
-    # 2. Check Authorization header
-    if authorization:
+    """
+    Enforces strict constant-time CRON_SECRET verification for automated system maintenance jobs.
+    Prevents privilege escalation by disallowing any user session tokens.
+    """
+    expected = get_cron_secret()
+    if not expected:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Cron secret is not configured on the server."
+        )
+
+    provided = None
+    if x_cron_secret and x_cron_secret.strip():
+        provided = x_cron_secret.strip()
+    elif authorization:
         token = authorization
-        if authorization.startswith("Bearer "):
-            token = authorization[7:].strip()
-        if CRON_SECRET and token.strip() == CRON_SECRET.strip():
-            return "system_cron"
-        # Validate as standard user JWT
-        return await get_current_user(token)
-        
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Unauthorized. Valid session token or X-Cron-Secret header required.",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+        if token.startswith("Bearer "):
+            token = token[7:].strip()
+        provided = token.strip()
+
+    if not provided:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="CRON_SECRET authorization required via X-Cron-Secret or Authorization header.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not secrets.compare_digest(provided, expected):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid cron credentials."
+        )
+
+    return "system_cron"
+
+# Backward compatibility alias
+verify_cron_secret_or_user = verify_cron_secret
 
