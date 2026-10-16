@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+import time
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
@@ -679,9 +680,41 @@ ALLOWED_OPERATIVE_EMAILS = {
     "harshit@glazing.com"
 }
 
+_password_attempt_tracker: dict[str, list[float]] = {}
+MAX_EMAIL_ATTEMPTS = 5
+MAX_IP_ATTEMPTS = 10
+LOCKOUT_WINDOW_SECONDS = 900.0  # 15 minutes lockout
+
+def _check_password_rate_limits(client_ip: str, clean_email: str):
+    now = time.time()
+    for key, max_allowed, desc in [
+        (f"email:{clean_email}", MAX_EMAIL_ATTEMPTS, "account"),
+        (f"ip:{client_ip}", MAX_IP_ATTEMPTS, "IP address")
+    ]:
+        attempts = [t for t in _password_attempt_tracker.get(key, []) if now - t < LOCKOUT_WINDOW_SECONDS]
+        _password_attempt_tracker[key] = attempts
+        if len(attempts) >= max_allowed:
+            retry_after = int(LOCKOUT_WINDOW_SECONDS - (now - attempts[0]))
+            remaining_mins = max(1, retry_after // 60)
+            raise HTTPException(
+                status_code=429,
+                detail=f"Security lockout: Too many failed password attempts for this {desc}. Please wait {remaining_mins} minutes before retrying.",
+                headers={"Retry-After": str(max(1, retry_after))}
+            )
+
+def _record_failed_password_attempt(client_ip: str, clean_email: str):
+    now = time.time()
+    for key in [f"email:{clean_email}", f"ip:{client_ip}"]:
+        attempts = _password_attempt_tracker.setdefault(key, [])
+        attempts.append(now)
+
+def _clear_failed_password_attempts(client_ip: str, clean_email: str):
+    _password_attempt_tracker.pop(f"email:{clean_email}", None)
+    _password_attempt_tracker.pop(f"ip:{client_ip}", None)
+
 @router.post("/set-password")
-async def set_operative_password(req: SetPasswordRequest):
-    """Allows verified squad operatives to set or update their custom password in Supabase."""
+async def set_operative_password(req: SetPasswordRequest, request: Request):
+    """Allows verified squad operatives to update their custom password in Supabase with strict dual-layer rate limiting."""
     clean_email = req.email.strip().lower()
     if clean_email not in ALLOWED_OPERATIVE_EMAILS:
         raise HTTPException(
@@ -693,44 +726,55 @@ async def set_operative_password(req: SetPasswordRequest):
             status_code=400,
             detail="Password must be at least 6 characters long."
         )
-    
+
+    # Derive client identifier for dual-layer rate-limiting (IP & Email)
+    client_ip = request.client.host if request.client else "unknown"
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+
+    _check_password_rate_limits(client_ip, clean_email)
+
     try:
         users = db.auth.admin.list_users()
         user = next((u for u in users if u.email and u.email.lower() == clean_email), None)
+        
+        # Security: Disable unauthenticated account creation completely
         if not user:
-            # First-time provisioning: create user if missing in auth
-            disp_name = clean_email.split("@")[0].capitalize()
-            created = db.auth.admin.create_user({
+            _record_failed_password_attempt(client_ip, clean_email)
+            raise HTTPException(
+                status_code=403,
+                detail="Operative account not found or unprovisioned. Initial provisioning is strictly restricted to squad administrators."
+            )
+
+        # Existing operative account: must provide current password to prevent unauthorized takeover
+        if not req.current_password or not req.current_password.strip():
+            _record_failed_password_attempt(client_ip, clean_email)
+            raise HTTPException(
+                status_code=400,
+                detail="Current password is required to update an operative's password."
+            )
+
+        try:
+            sign_in_test = db.auth.sign_in_with_password({
                 "email": clean_email,
-                "password": req.password,
-                "email_confirm": True
+                "password": req.current_password.strip()
             })
-            db.table("users").upsert({
-                "id": created.user.id,
-                "display_name": disp_name,
-                "total_lifetime_points": 0
-            }).execute()
-        else:
-            # Existing operative account: must provide current password to prevent unauthorized takeover
-            if not req.current_password:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Current password is required to update an existing operative's password."
-                )
-            try:
-                sign_in_test = db.auth.sign_in_with_password({
-                    "email": clean_email,
-                    "password": req.current_password
-                })
-                if not sign_in_test or not sign_in_test.user:
-                    raise Exception("Invalid credentials")
-            except Exception:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Current password verification failed. Unauthorized to update password."
-                )
-            db.auth.admin.update_user_by_id(user.id, {"password": req.password})
-            
+            if not sign_in_test or not sign_in_test.user:
+                raise Exception("Invalid credentials")
+        except Exception:
+            _record_failed_password_attempt(client_ip, clean_email)
+            raise HTTPException(
+                status_code=401,
+                detail="Current password verification failed. Unauthorized to update password."
+            )
+
+        # Update password in Supabase
+        db.auth.admin.update_user_by_id(user.id, {"password": req.password})
+        
+        # Reset failed count on successful authentication
+        _clear_failed_password_attempts(client_ip, clean_email)
+
         return {
             "status": "success",
             "message": f"Password successfully updated in Supabase for {clean_email}."
