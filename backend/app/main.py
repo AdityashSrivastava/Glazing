@@ -22,16 +22,43 @@ from fastapi.responses import JSONResponse
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
 allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
 if not allowed_origins:
-    allowed_origins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"]
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "https://glazing-lac.vercel.app"
+    ]
+elif "https://glazing-lac.vercel.app" not in allowed_origins:
+    allowed_origins.append("https://glazing-lac.vercel.app")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https://.*\.vercel\.app$",
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https://glazing(-[a-z0-9-]+)?\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+MAX_GENERAL_BODY_SIZE = 2 * 1024 * 1024   # 2MB for standard JSON API payloads
+MAX_UPLOAD_BODY_SIZE = 10 * 1024 * 1024   # 10MB for proof screenshot uploads
+
+@app.middleware("http")
+async def enforce_payload_limits(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            length = int(content_length)
+            is_upload = request.url.path.endswith("/upload-proof")
+            max_limit = MAX_UPLOAD_BODY_SIZE if is_upload else MAX_GENERAL_BODY_SIZE
+            if length > max_limit:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": f"Payload Too Large. Maximum allowed size is {max_limit // (1024 * 1024)}MB."}
+                )
+        except ValueError:
+            pass
+    return await call_next(request)
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
