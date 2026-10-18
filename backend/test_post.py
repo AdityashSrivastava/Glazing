@@ -6,7 +6,10 @@ from dotenv import load_dotenv
 load_dotenv()
 supabase: Client = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 
-res = supabase.auth.sign_in_with_password({"email": "adityash@glazing.com", "password": "password123"})
+test_password = os.environ.get("TEST_PASSWORD")
+if not test_password:
+    raise ValueError("TEST_PASSWORD environment variable is required to execute integration test.")
+res = supabase.auth.sign_in_with_password({"email": "adityash@glazing.com", "password": test_password})
 token = res.session.access_token
 
 task_res = supabase.table("tasks").select("id").eq("status", "PENDING").execute()

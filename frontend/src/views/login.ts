@@ -88,7 +88,7 @@ export function renderLogin(): string {
           <div id="current-pwd-container" class="hidden">
             <div class="flex justify-between items-center mb-1">
               <label class="text-[13px] font-semibold text-primary">Current Password</label>
-              <span class="text-[11px] text-muted font-mono">Default: password123</span>
+              <span class="text-[11px] text-muted font-mono">Verification Required</span>
             </div>
             <div class="relative">
               <input

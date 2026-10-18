@@ -2,13 +2,21 @@ from dotenv import load_dotenv
 load_dotenv()
 from app.database import db
 
+import os
+
 def create_users():
+    default_pwd = os.getenv("BOOTSTRAP_OPERATIVE_PASSWORD")
+    if not default_pwd:
+        raise ValueError(
+            "BOOTSTRAP_OPERATIVE_PASSWORD environment variable is required to run user bootstrap. "
+            "Please set a strong temporary password in your environment."
+        )
     test_users = [
-        {"email": "adityash@glazing.com", "password": "password123", "name": "Adityash"},
-        {"email": "manas@glazing.com", "password": "password123", "name": "Manas"},
-        {"email": "shivansh@glazing.com", "password": "password123", "name": "Shivansh"},
-        {"email": "praveen@glazing.com", "password": "password123", "name": "Praveen"},
-        {"email": "harshit@glazing.com", "password": "password123", "name": "Harshit"}
+        {"email": "adityash@glazing.com", "password": default_pwd, "name": "Adityash"},
+        {"email": "manas@glazing.com", "password": default_pwd, "name": "Manas"},
+        {"email": "shivansh@glazing.com", "password": default_pwd, "name": "Shivansh"},
+        {"email": "praveen@glazing.com", "password": default_pwd, "name": "Praveen"},
+        {"email": "harshit@glazing.com", "password": default_pwd, "name": "Harshit"}
     ]
     
     for u in test_users:
