@@ -4,98 +4,99 @@ import { escapeHtml } from '../../utils';
 
 export function renderVerdictModal(): string {
   return `
-    <div id="verdict-modal-overlay" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
-      <div class="theme-card max-w-[490px] w-full p-6 md:p-8 space-y-5 bg-[#0c0a09] border border-rose-500/40 rounded-3xl shadow-[0_0_50px_rgba(244,63,94,0.25)] relative overflow-hidden text-left animate-in fade-in zoom-in-95 duration-200">
+    <div id="verdict-modal-overlay" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="max-w-[460px] w-full bg-[#09090b] border border-zinc-800 rounded-2xl shadow-2xl shadow-black relative overflow-hidden text-left animate-in fade-in zoom-in-95 duration-150">
         
-        <!-- Glowing Top Bar & 30s Countdown Progress Bar -->
-        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-rose-500 to-red-600"></div>
-        <div class="absolute top-1 left-0 right-0 h-0.5 bg-black/60">
+        <!-- Hairline Progress Indicator -->
+        <div class="w-full h-[2px] bg-zinc-800/80">
           <div id="verdict-modal-timer-bar" class="h-full bg-rose-500 transition-all duration-1000 ease-linear" style="width: 100%;"></div>
         </div>
 
-        <div class="flex items-start justify-between">
-          <div class="flex items-center gap-3.5">
-            <div class="relative shrink-0">
-              <img 
-                src="/bombastic.png" 
-                alt="Mr. Boombastic" 
-                class="w-14 h-14 rounded-2xl object-contain p-1 border-2 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.35)] bg-rose-950/20"
-              />
-              <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-rose-600 border border-black flex items-center justify-center text-[10px] shadow" title="One Above All Authority">
-                ⚖️
-              </div>
-            </div>
-            <div>
-              <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-mono font-bold tracking-widest uppercase mb-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
-                Official Verdict
-              </div>
-              <h3 class="text-lg font-extrabold tracking-tight text-white font-mono uppercase">MISTERBOMBASTIC VERDICT</h3>
-            </div>
-          </div>
-          <button type="button" id="close-verdict-popup-btn" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-all cursor-pointer border border-white/5 hover:border-white/15 text-sm" title="Dismiss">✕</button>
-        </div>
-
-        <!-- Penalized Operative Section -->
-        <div class="p-3.5 rounded-2xl bg-black/70 border border-rose-500/30 flex items-center justify-between">
-          <div>
-            <div class="text-[10px] font-mono text-zinc-400 uppercase tracking-wider font-semibold">Penalized Operative</div>
-            <div class="text-base font-black font-mono text-white flex items-center gap-2 mt-0.5" id="verdict-operative-name">
-              <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-              <span>...</span>
-            </div>
-          </div>
-          <div class="text-right">
-            <div class="text-[10px] font-mono text-zinc-400 uppercase tracking-wider font-semibold">Sanction Authority</div>
-            <div class="text-xs font-mono font-bold text-rose-400" id="verdict-sanction-badge">OVERSEER SANCTION</div>
-          </div>
-        </div>
-
-        <!-- Judged Action & Directive Title -->
-        <div class="bg-rose-950/30 border border-rose-500/20 p-3.5 rounded-2xl space-y-1.5 text-xs">
+        <div class="p-6 space-y-5">
+          <!-- Header: Entity & Dismissal -->
           <div class="flex items-center justify-between">
-            <span class="text-rose-300 font-mono text-[11px] uppercase tracking-wider font-semibold">Judged Action</span>
-            <span id="verdict-action-badge" class="font-bold text-rose-400 font-mono">...</span>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 p-1 flex items-center justify-center shrink-0">
+                <img 
+                  src="/bombastic.png" 
+                  alt="Mr. Boombastic" 
+                  class="w-full h-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                />
+              </div>
+              <div>
+                <h3 class="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
+                  <span>Misterbombastic Verdict</span>
+                </h3>
+                <p class="text-xs text-zinc-400">Official Disciplinary Sanction</p>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              id="close-verdict-popup-btn" 
+              class="w-7 h-7 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center justify-center transition-colors cursor-pointer text-xs" 
+              title="Dismiss"
+            >✕</button>
           </div>
-          <div class="text-zinc-200 text-xs font-semibold pt-0.5" id="verdict-task-title">
-            ...
-          </div>
-        </div>
 
-        <!-- Penalty Points Display -->
-        <div class="p-4 rounded-2xl bg-black/60 border border-white/5 flex items-center justify-between">
-          <div>
-            <div class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider font-semibold">Points Deducted</div>
-            <div class="text-2xl font-black font-mono text-rose-500 tracking-tight" id="verdict-points-deducted">-0 PTS</div>
-          </div>
-          <div class="text-right">
-            <div class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider font-semibold">Status</div>
-            <div class="text-xs font-mono font-bold text-amber-400">IRREVOCABLE</div>
-          </div>
-        </div>
+          <!-- Structured Ledger Specification (Unified, no nested cards) -->
+          <div class="border-y border-zinc-800/80 py-3.5 space-y-3">
+            <!-- Row 1: Operative & Status -->
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-zinc-400">Operative</span>
+              <div class="flex items-center gap-1.5 font-medium text-zinc-200" id="verdict-operative-name">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <span>...</span>
+              </div>
+            </div>
 
-        <!-- Overseer's Reason -->
-        <div>
-          <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5 font-semibold">Overseer's Written Reason</label>
-          <div class="p-3.5 rounded-2xl bg-surface/80 border border-border text-zinc-200 text-xs leading-relaxed italic" id="verdict-reason-text">
-            "..."
+            <!-- Row 2: Sanction / Judged Action -->
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-zinc-400">Judged Action</span>
+              <span id="verdict-action-badge" class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-rose-950/60 text-rose-300 border border-rose-900/50">
+                ...
+              </span>
+            </div>
+
+            <!-- Row 3: Directive / Task Title -->
+            <div class="flex items-start justify-between gap-3 text-xs">
+              <span class="text-zinc-400 shrink-0">Directive</span>
+              <span id="verdict-task-title" class="font-medium text-zinc-200 text-right truncate max-w-[260px]">
+                ...
+              </span>
+            </div>
+
+            <!-- Row 4: Penalty Points -->
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-zinc-400">Points Deducted</span>
+              <span id="verdict-points-deducted" class="font-semibold text-rose-400 font-mono tracking-tight text-sm">
+                -0 PTS
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div class="pt-2">
-          <button
-            type="button"
-            id="verdict-accept-btn"
-            class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-bold text-xs uppercase tracking-wider font-mono shadow-lg shadow-rose-900/30 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <span id="verdict-btn-text">Accept Verdict & Repent</span>
-            <span id="verdict-countdown-text" class="px-2 py-0.5 rounded-md bg-black/40 text-[10px] font-mono text-white/90">30s</span>
-            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-          </button>
-        </div>
+          <!-- Finding / Rationale -->
+          <div class="space-y-1.5">
+            <span class="text-[11px] font-medium text-zinc-400 uppercase tracking-wider block">Overseer Finding</span>
+            <div class="text-xs text-zinc-300 leading-relaxed bg-zinc-900/50 p-3 rounded-xl border border-zinc-800/60" id="verdict-reason-text">
+              "..."
+            </div>
+          </div>
 
-        <div class="text-center">
-          <p class="text-[10px] text-zinc-500 font-mono uppercase tracking-widest">Recorded on Glazing Ledger // The One Above All Watches</p>
+          <!-- Decisive Action Button -->
+          <div class="pt-1">
+            <button
+              type="button"
+              id="verdict-accept-btn"
+              class="w-full py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs tracking-wide transition-all active:scale-[0.99] flex items-center justify-between cursor-pointer"
+            >
+              <span id="verdict-btn-text">Accept Verdict & Repent</span>
+              <span id="verdict-countdown-text" class="text-[11px] text-white/80 font-mono">30s</span>
+            </button>
+          </div>
+
+          <div class="text-center pt-0.5">
+            <p class="text-[10px] text-zinc-400 tracking-wider font-mono">Glazing Ledger // Verified Executive Sanction</p>
+          </div>
         </div>
       </div>
     </div>
@@ -151,14 +152,14 @@ async function displayCurrentVerdict() {
   const isTarget = currentUid === v.target_user_id;
 
   const actionLabels: Record<string, string> = {
-    'REVOKE_GYM': '🏋️ GYM CHECK-IN REVOKED',
-    'REJECT_TASK': '❌ TASK DECLARED FAKE & VOIDED',
-    'REWRITE_TASK': '✍️ TASK AUDITED & HOURS DOCKED',
-    'REVERT_PENDING': '🔄 FORCED REVERT TO PENDING'
+    'REVOKE_GYM': 'Gym Check-in Revoked',
+    'REJECT_TASK': 'Task Voided (Disqualified)',
+    'REWRITE_TASK': 'Hours Recalibrated & Docked',
+    'REVERT_PENDING': 'Reverted to Pending'
   };
 
   if (opNameEl) {
-    opNameEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span><span>${escapeHtml(v.target_user_name || 'Operative')}</span>`;
+    opNameEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span><span>${escapeHtml(v.target_user_name || 'Operative')}</span>`;
   }
 
   actionBadge.textContent = actionLabels[v.action_type] || v.action_type;
@@ -167,7 +168,7 @@ async function displayCurrentVerdict() {
   reasonEl.textContent = `"${escapeHtml(v.reason)}"`;
 
   if (btnTextEl) {
-    btnTextEl.textContent = isTarget ? 'Accept Verdict & Repent' : 'Witnessed & Acknowledged';
+    btnTextEl.textContent = isTarget ? 'Accept Verdict & Repent' : 'Witnessed & Understood';
   }
 
   overlay.classList.remove('hidden');
@@ -183,7 +184,7 @@ async function displayCurrentVerdict() {
     }
 
     try {
-      if (acceptBtn) acceptBtn.textContent = 'Acknowledging...';
+      if (btnTextEl) btnTextEl.textContent = 'Acknowledging...';
       await acknowledgeVerdict(v.id);
     } catch {
     } finally {
