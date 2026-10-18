@@ -126,10 +126,20 @@ def save_verdict(verdict_data: Dict[str, Any]):
     _save_local_verdicts()
 
     try:
-        db.table("verdicts").insert(verdict_data).execute()
+        db_record = {
+            "id": verdict_data.get("id"),
+            "target_user_id": verdict_data.get("target_user_id"),
+            "task_id": verdict_data.get("task_id"),
+            "action_type": verdict_data.get("action_type"),
+            "reason": verdict_data.get("reason"),
+            "points_deducted": verdict_data.get("points_deducted", 0),
+            "old_values": verdict_data.get("old_values"),
+            "new_values": verdict_data.get("new_values"),
+            "acknowledged": verdict_data.get("acknowledged", False),
+        }
+        db.table("verdicts").insert(db_record).execute()
     except Exception as e:
-        # Expected if verdicts table is not yet migrated in Supabase
-        pass
+        print(f"save_verdict supabase insert warning: {e}")
 
 
 # -------------------------------------------------------------
@@ -341,12 +351,15 @@ async def revoke_gym_verdict(
     if gym_task:
         task_id_str = str(gym_task["id"])
         pts_deducted = int(gym_task.get("points_earned") or 5)
-        # Update gym task status to rejected
-        db.table("tasks").update({
-            "status": "REJECTED_BY_OVERSEER",
-            "points_earned": 0,
-            "title": f"❌ REVOKED: {gym_task.get('title')}"
-        }).eq("id", task_id_str).execute()
+        # Delete or set false gym check-in task to EXPIRED
+        try:
+            db.table("tasks").delete().eq("id", task_id_str).execute()
+        except Exception:
+            db.table("tasks").update({
+                "status": "EXPIRED",
+                "points_earned": 0,
+                "title": f"❌ REVOKED: {gym_task.get('title')}"
+            }).eq("id", task_id_str).execute()
 
     # Deduct points atomically
     overseer_deduct_points(target_uid, pts_deducted)
@@ -363,7 +376,7 @@ async def revoke_gym_verdict(
         "reason": payload.reason.strip(),
         "points_deducted": pts_deducted,
         "old_values": {"status": "COMPLETED", "points": pts_deducted},
-        "new_values": {"status": "REJECTED_BY_OVERSEER", "points": 0},
+        "new_values": {"status": "EXPIRED", "points": 0},
         "acknowledged": False,
         "created_at": now_ist.isoformat()
     }
@@ -391,9 +404,9 @@ async def reject_task_verdict(
     target_name = user_map.get(target_uid, "Operative")
     points_to_deduct = int(task.get("points_earned") or 0)
 
-    # Invalidate task
+    # Invalidate task (use EXPIRED to respect PostgreSQL tasks_status_check constraint)
     db.table("tasks").update({
-        "status": "REJECTED_BY_OVERSEER",
+        "status": "EXPIRED",
         "points_earned": 0,
         "title": f"❌ VOIDED: {task.get('title')}"
     }).eq("id", payload.task_id).execute()
@@ -413,7 +426,7 @@ async def reject_task_verdict(
         "reason": payload.reason.strip(),
         "points_deducted": points_to_deduct,
         "old_values": {"status": task.get("status"), "points": points_to_deduct},
-        "new_values": {"status": "REJECTED_BY_OVERSEER", "points": 0},
+        "new_values": {"status": "EXPIRED", "points": 0},
         "acknowledged": False,
         "created_at": now_ist.isoformat()
     }

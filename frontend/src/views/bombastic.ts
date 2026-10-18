@@ -499,7 +499,7 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
     tasksTbody.innerHTML = filtered.map(t => {
       const isClassified = t.is_private;
       const isCompleted = t.status === 'COMPLETED';
-      const isRejected = t.status === 'REJECTED_BY_OVERSEER';
+      const isRejected = t.status === 'ABANDONED' || t.status === 'REJECTED_BY_OVERSEER' || (typeof t.title === 'string' && (t.title.startsWith('❌ REVOKED') || t.title.startsWith('❌ VOIDED')));
 
       let statusBadge = `<span class="text-zinc-400">${t.status}</span>`;
       if (isCompleted) {
