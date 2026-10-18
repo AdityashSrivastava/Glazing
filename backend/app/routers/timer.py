@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import threading
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/api/timer", tags=["Pomodoro Timer"])
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
+_file_lock = threading.Lock()
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 DATA_FILE = os.path.join(DATA_DIR, "focus_sessions.json")
 
@@ -41,19 +43,21 @@ class TimerOverviewStats(BaseModel):
     total_focus_duration_minutes: int
 
 def _load_all_sessions() -> dict:
-    os.makedirs(DATA_DIR, exist_ok=True)
-    if not os.path.exists(DATA_FILE):
-        return {}
-    try:
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
+    with _file_lock:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        if not os.path.exists(DATA_FILE):
+            return {}
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
 
 def _save_all_sessions(data: dict):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    with _file_lock:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
 
 def _get_user_sessions(user_id: str) -> List[dict]:
     # 1. Try Supabase cloud table first
