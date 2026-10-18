@@ -23,7 +23,7 @@ export function renderBombastic(): string {
         <div class="max-w-[1340px] w-full mx-auto px-4 md:px-6 flex items-center justify-between">
           <div class="flex items-center space-x-4">
             <div class="flex items-center space-x-2.5">
-              <img src="/bombastic.png" alt="Mr. Boombastic" class="w-7 h-7 rounded-lg object-cover border border-rose-500/40 shadow-sm" />
+              <img src="/bombastic.png" alt="Mr. Boombastic" class="w-7 h-7 rounded-lg object-contain p-0.5 bg-rose-950/30 border border-rose-500/40 shadow-sm" />
               <span class="font-mono font-black text-sm tracking-widest text-rose-500 uppercase">MISTERBOMBASTIC</span>
             </div>
             <span class="hidden sm:inline-block px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 font-mono text-[10px] font-bold tracking-wider">
@@ -167,8 +167,11 @@ export function renderBombastic(): string {
           <div class="absolute -top-24 -right-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
           <div class="flex items-center justify-between border-b border-white/10 pb-4">
+          <div class="flex items-center justify-between border-b border-white/10 pb-4">
             <div class="flex items-center gap-3">
-              <img src="/bombastic.png" alt="Mr. Boombastic" class="w-10 h-10 rounded-xl object-cover border border-rose-500/40 shadow-inner" />
+              <div class="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center p-1 shadow-inner">
+                <img src="/bombastic.png" alt="Mr. Boombastic" class="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(244,63,94,0.3)]" />
+              </div>
               <div>
                 <div class="text-[10px] font-mono uppercase tracking-wider text-rose-400 font-bold">One Above All Authority</div>
                 <h3 class="text-base font-bold text-white font-mono uppercase tracking-tight">Issue Overseer Verdict</h3>
@@ -186,7 +189,7 @@ export function renderBombastic(): string {
             <div class="text-zinc-200 text-xs truncate font-medium pt-0.5" id="audit-target-task">...</div>
           </div>
 
-          <form id="audit-verdict-form" class="space-y-4">
+          <form id="audit-verdict-form" novalidate class="space-y-4">
             <input type="hidden" id="audit-task-id" />
             <input type="hidden" id="audit-user-id" />
 
@@ -208,7 +211,7 @@ export function renderBombastic(): string {
               </div>
               <div>
                 <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1">Adjusted Actual Hours</label>
-                <input type="number" step="0.25" min="0.1" max="12" id="audit-new-hours" class="w-full bg-[#140e10] border border-white/10 text-white font-mono text-xs rounded-xl px-3 py-2 outline-none" placeholder="1.0" />
+                <input type="number" id="audit-new-hours" class="w-full bg-[#140e10] border border-white/10 text-white font-mono text-xs rounded-xl px-3 py-2 outline-none" placeholder="1.0" />
               </div>
             </div>
 
@@ -216,7 +219,6 @@ export function renderBombastic(): string {
               <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">Overseer Verdict Reason (Mandatory)</label>
               <textarea
                 id="audit-reason"
-                required
                 rows="3"
                 class="w-full bg-[#140e10] border border-white/10 focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30 text-white font-sans text-xs rounded-xl p-3 outline-none transition-all placeholder:text-zinc-600 leading-relaxed resize-none"
                 placeholder="Explain the verdict reason (displayed on operative popup & squad activity feed)..."
@@ -238,9 +240,9 @@ export function renderBombastic(): string {
                 Cancel
               </button>
               <button
-                type="submit"
+                type="button"
                 id="submit-verdict-btn"
-                class="px-5 py-2 text-xs font-mono font-bold text-white bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 rounded-xl transition-all cursor-pointer shadow-lg shadow-rose-950/50 flex items-center gap-1.5"
+                class="px-5 py-2.5 text-xs font-mono font-bold text-white bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 rounded-xl transition-all cursor-pointer shadow-lg shadow-rose-950/50 flex items-center gap-2 active:scale-95"
               >
                 <span>Execute Verdict</span>
               </button>
@@ -257,7 +259,9 @@ export function renderBombastic(): string {
 
           <div class="flex items-center justify-between border-b border-white/10 pb-4">
             <div class="flex items-center gap-3">
-              <img src="/bombastic.png" alt="Mr. Boombastic" class="w-10 h-10 rounded-xl object-cover border border-amber-500/40 shadow-inner" />
+              <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center p-1 shadow-inner">
+                <img src="/bombastic.png" alt="Mr. Boombastic" class="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(245,158,11,0.3)]" />
+              </div>
               <div>
                 <div class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">Authoritative Sanction</div>
                 <h3 class="text-base font-bold text-white font-mono uppercase tracking-tight">Revoke Gym Check-in</h3>
@@ -266,7 +270,7 @@ export function renderBombastic(): string {
             <button type="button" id="close-quick-gym-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer">✕</button>
           </div>
 
-          <form id="quick-gym-form" class="space-y-4">
+          <form id="quick-gym-form" novalidate class="space-y-4">
             <div>
               <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">Target Operative</label>
               <select id="quick-gym-user-select" class="w-full bg-[#140e10] border border-white/10 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 text-white font-mono text-xs rounded-xl px-3.5 py-2.5 outline-none transition-all cursor-pointer">
@@ -660,51 +664,80 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
   if (closeAuditBtn) closeAuditBtn.addEventListener('click', () => auditModal.classList.add('hidden'));
   if (cancelAuditBtn) cancelAuditBtn.addEventListener('click', () => auditModal.classList.add('hidden'));
 
-  if (auditForm) {
-    auditForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const submitBtn = document.getElementById('submit-verdict-btn') as HTMLButtonElement;
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Enforcing...';
+  const executeVerdictHandler = async () => {
+    const submitBtn = document.getElementById('submit-verdict-btn') as HTMLButtonElement;
+    const reasonInput = document.getElementById('audit-reason') as HTMLTextAreaElement;
+    const reason = reasonInput ? reasonInput.value.trim() : '';
 
-      const taskId = (document.getElementById('audit-task-id') as HTMLInputElement).value;
-      const userId = (document.getElementById('audit-user-id') as HTMLInputElement).value;
-      const actionType = auditActionSelect.value;
-      const reason = (document.getElementById('audit-reason') as HTMLTextAreaElement).value;
-
-      try {
-        let verdict: VerdictItem;
-        if (actionType === 'REVOKE_GYM') {
-          verdict = await revokeGymVerdict(userId, reason);
-        } else if (actionType === 'REJECT_TASK') {
-          verdict = await rejectTaskVerdict(taskId, reason);
-        } else if (actionType === 'REWRITE_TASK') {
-          const newTitle = (document.getElementById('audit-new-title') as HTMLInputElement).value;
-          const newHours = parseFloat((document.getElementById('audit-new-hours') as HTMLInputElement).value) || 1.0;
-          verdict = await rewriteTaskVerdict(taskId, newTitle, newHours, reason);
-        } else {
-          verdict = await revertPendingVerdict(taskId, reason);
-        }
-
-        auditModal.classList.add('hidden');
-        showNotification(`⚖️ Verdict executed: -${verdict.points_deducted} pts docked!`);
-
-        // Broadcast verdict to all connected operatives via Supabase Realtime
-        try {
-          supabase.channel('squad-verdicts').send({
-            type: 'broadcast',
-            event: 'verdict-issued',
-            payload: verdict
-          });
-        } catch {}
-
-        await loadAllOverseerTelemetry();
-      } catch (err: any) {
-        showNotification(`Verdict execution failed: ${err.message}`, 'error');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Execute Verdict';
+    if (!reason) {
+      showNotification('Verdict Reason Required: Please specify the reason for this sanction.', 'error');
+      if (reasonInput) {
+        reasonInput.focus();
+        reasonInput.classList.add('border-rose-500', 'ring-1', 'ring-rose-500');
+        setTimeout(() => reasonInput.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500'), 2500);
       }
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span class="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin mr-1"></span><span>Enforcing...</span>`;
+    }
+
+    const taskId = (document.getElementById('audit-task-id') as HTMLInputElement).value;
+    const userId = (document.getElementById('audit-user-id') as HTMLInputElement).value;
+    const actionType = auditActionSelect.value;
+
+    try {
+      let verdict: VerdictItem;
+      if (actionType === 'REVOKE_GYM') {
+        verdict = await revokeGymVerdict(userId, reason);
+      } else if (actionType === 'REJECT_TASK') {
+        verdict = await rejectTaskVerdict(taskId, reason);
+      } else if (actionType === 'REWRITE_TASK') {
+        const newTitle = (document.getElementById('audit-new-title') as HTMLInputElement).value || 'Audited Task';
+        const newHours = parseFloat((document.getElementById('audit-new-hours') as HTMLInputElement).value) || 1.0;
+        verdict = await rewriteTaskVerdict(taskId, newTitle, newHours, reason);
+      } else {
+        verdict = await revertPendingVerdict(taskId, reason);
+      }
+
+      auditModal.classList.add('hidden');
+      showNotification(`⚖️ Verdict executed: -${verdict.points_deducted} pts docked from ${verdict.target_user_name || 'Operative'}!`);
+
+      // Broadcast verdict to all connected operatives via Supabase Realtime
+      try {
+        supabase.channel('squad-verdicts').send({
+          type: 'broadcast',
+          event: 'verdict-issued',
+          payload: verdict
+        });
+      } catch {}
+
+      await loadAllOverseerTelemetry();
+    } catch (err: any) {
+      console.error("Verdict execution error:", err);
+      showNotification(`Verdict execution failed: ${err.message}`, 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>Execute Verdict</span>`;
+      }
+    }
+  };
+
+  const submitVerdictBtn = document.getElementById('submit-verdict-btn');
+  if (submitVerdictBtn) {
+    submitVerdictBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      executeVerdictHandler();
+    });
+  }
+
+  if (auditForm) {
+    auditForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      executeVerdictHandler();
     });
   }
 
@@ -722,39 +755,67 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
   if (closeQuickGymBtn) closeQuickGymBtn.addEventListener('click', () => quickGymModal.classList.add('hidden'));
   if (cancelQuickGymBtn) cancelQuickGymBtn.addEventListener('click', () => quickGymModal.classList.add('hidden'));
 
-  if (quickGymForm) {
-    quickGymForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const submitBtn = document.getElementById('submit-quick-gym-btn') as HTMLButtonElement;
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Revoking...';
+  const executeQuickGymHandler = async () => {
+    const submitBtn = document.getElementById('submit-quick-gym-btn') as HTMLButtonElement;
+    const reasonInput = document.getElementById('quick-gym-reason') as HTMLTextAreaElement;
+    const reason = reasonInput ? reasonInput.value.trim() : '';
 
-      const targetUid = quickGymUserSelect.value;
-      const reason = (document.getElementById('quick-gym-reason') as HTMLTextAreaElement).value;
+    if (!reason) {
+      showNotification('Revocation Reason Required: Please specify why gym check-in is invalid.', 'error');
+      if (reasonInput) {
+        reasonInput.focus();
+        reasonInput.classList.add('border-amber-500', 'ring-1', 'ring-amber-500');
+        setTimeout(() => reasonInput.classList.remove('border-amber-500', 'ring-1', 'ring-amber-500'), 2500);
+      }
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span class="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin mr-1"></span><span>Revoking...</span>`;
+    }
+
+    const targetUid = quickGymUserSelect.value;
+
+    try {
+      const v = await revokeGymVerdict(targetUid, reason);
+      quickGymModal.classList.add('hidden');
+      if (quickGymForm) (quickGymForm as HTMLFormElement).reset();
+      showNotification(`🏋️ Gym Check-in Revoked: -${v.points_deducted} pts docked!`);
 
       try {
-        const v = await revokeGymVerdict(targetUid, reason);
-        quickGymModal.classList.add('hidden');
-        quickGymForm.reset();
-        showNotification(`🏋️ Gym Check-in Revoked: -${v.points_deducted} pts docked!`);
+        supabase.channel('squad-verdicts').send({
+          type: 'broadcast',
+          event: 'verdict-issued',
+          payload: v
+        });
+      } catch {}
 
-        // Broadcast gym revocation verdict to squad
-        try {
-          supabase.channel('squad-verdicts').send({
-            type: 'broadcast',
-            event: 'verdict-issued',
-            payload: v
-          });
-        } catch {}
+      await loadAllOverseerTelemetry();
 
-        await loadAllOverseerTelemetry();
-
-      } catch (err: any) {
-        showNotification(`Gym revocation failed: ${err.message}`, 'error');
-      } finally {
+    } catch (err: any) {
+      console.error("Gym revoke error:", err);
+      showNotification(`Gym revocation failed: ${err.message}`, 'error');
+    } finally {
+      if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Revoke (-5 pts)';
+        submitBtn.innerHTML = `<span>Revoke (-5 pts)</span>`;
       }
+    }
+  };
+
+  const submitQuickGymBtn = document.getElementById('submit-quick-gym-btn');
+  if (submitQuickGymBtn) {
+    submitQuickGymBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      executeQuickGymHandler();
+    });
+  }
+
+  if (quickGymForm) {
+    quickGymForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      executeQuickGymHandler();
     });
   }
 

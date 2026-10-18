@@ -1009,8 +1009,8 @@ function renderFilteredTasks(container: HTMLDivElement) {
         const label = actionLabels[v.action_type] || v.action_type;
         return `
           <div class="p-3.5 rounded-2xl bg-[#120a0b] border border-rose-500/30 flex items-start gap-3 shadow-lg shadow-black/40 text-left">
-            <div class="w-9 h-9 rounded-xl overflow-hidden border border-rose-500/40 shrink-0 bg-black shadow-inner">
-              <img src="/bombastic.png" alt="Mr. Boombastic" class="w-full h-full object-cover" />
+            <div class="w-9 h-9 rounded-xl overflow-hidden border border-rose-500/40 shrink-0 bg-rose-950/20 shadow-inner p-0.5">
+              <img src="/bombastic.png" alt="Mr. Boombastic" class="w-full h-full object-contain filter drop-shadow-[0_1px_4px_rgba(244,63,94,0.3)]" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between gap-2">
