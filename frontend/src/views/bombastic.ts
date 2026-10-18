@@ -167,26 +167,31 @@ export function renderBombastic(): string {
           <div class="absolute -top-24 -right-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
           <div class="flex items-center justify-between border-b border-white/10 pb-4">
-          <div class="flex items-center justify-between border-b border-white/10 pb-4">
             <div class="flex items-center gap-3">
-              <div class="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center p-1 shadow-inner">
+              <div class="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center p-1.5 shadow-inner shrink-0">
                 <img src="/bombastic.png" alt="Mr. Boombastic" class="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(244,63,94,0.3)]" />
               </div>
               <div>
-                <div class="text-[10px] font-mono uppercase tracking-wider text-rose-400 font-bold">One Above All Authority</div>
-                <h3 class="text-base font-bold text-white font-mono uppercase tracking-tight">Issue Overseer Verdict</h3>
+                <div class="text-[10px] font-mono uppercase tracking-widest text-rose-400 font-bold mb-0.5 flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                  One Above All Authority
+                </div>
+                <h3 class="text-base font-extrabold text-white font-mono uppercase tracking-tight">Issue Overseer Verdict</h3>
               </div>
             </div>
-            <button type="button" id="close-audit-modal-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer">✕</button>
+            <button type="button" id="close-audit-modal-btn" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-all cursor-pointer border border-white/5 hover:border-white/15 text-sm">✕</button>
           </div>
 
           <!-- Target Info -->
-          <div class="p-3.5 rounded-2xl bg-black/70 border border-white/10 text-xs font-mono space-y-1.5">
+          <div class="p-3.5 rounded-2xl bg-black/60 border border-white/10 text-xs font-mono space-y-2">
             <div class="text-zinc-400 flex justify-between items-center">
-              <span class="text-[11px] uppercase tracking-wider text-zinc-500">Target Operative</span>
-              <span class="text-rose-400 font-bold font-mono px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20" id="audit-target-name">...</span>
+              <span class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Target Operative</span>
+              <span class="text-rose-400 font-bold font-mono px-2.5 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 shadow-sm" id="audit-target-name">...</span>
             </div>
-            <div class="text-zinc-200 text-xs truncate font-medium pt-0.5" id="audit-target-task">...</div>
+            <div class="text-zinc-200 text-xs truncate font-medium flex items-center gap-1.5 pt-0.5">
+              <span class="text-zinc-500 text-[10px] uppercase tracking-wider font-mono">Target Task:</span>
+              <span class="truncate font-semibold text-zinc-200" id="audit-target-task">...</span>
+            </div>
           </div>
 
           <form id="audit-verdict-form" novalidate class="space-y-4">
@@ -194,7 +199,7 @@ export function renderBombastic(): string {
             <input type="hidden" id="audit-user-id" />
 
             <div>
-              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">Verdict Action</label>
+              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5 font-semibold">Verdict Action</label>
               <select id="audit-action-type" class="w-full bg-[#140e10] border border-white/10 focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30 text-white font-mono text-xs rounded-xl px-3.5 py-2.5 outline-none transition-all cursor-pointer">
                 <option value="REJECT_TASK">❌ Void Task & Deduct All Points (Fake Task)</option>
                 <option value="REWRITE_TASK">✍️ Rewrite Title & Dock Actual Hours</option>
@@ -204,7 +209,7 @@ export function renderBombastic(): string {
             </div>
 
             <!-- Rewrite Fields (shown only for REWRITE_TASK) -->
-            <div id="rewrite-fields" class="space-y-3 hidden p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+            <div id="rewrite-fields" class="space-y-3 hidden p-3.5 rounded-2xl bg-white/[0.02] border border-white/5">
               <div>
                 <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1">New Audited Title</label>
                 <input type="text" id="audit-new-title" class="w-full bg-[#140e10] border border-white/10 text-white font-mono text-xs rounded-xl px-3 py-2 outline-none" placeholder="Audited task title..." />
@@ -216,26 +221,26 @@ export function renderBombastic(): string {
             </div>
 
             <div>
-              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">Overseer Verdict Reason (Mandatory)</label>
+              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5 font-semibold">Overseer Verdict Reason (Mandatory)</label>
               <textarea
                 id="audit-reason"
                 rows="3"
                 class="w-full bg-[#140e10] border border-white/10 focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30 text-white font-sans text-xs rounded-xl p-3 outline-none transition-all placeholder:text-zinc-600 leading-relaxed resize-none"
                 placeholder="Explain the verdict reason (displayed on operative popup & squad activity feed)..."
               ></textarea>
-              <div class="flex flex-wrap gap-1.5 pt-1.5">
-                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer" data-reason="Fabricated / fraudulent task proof">❌ Fake proof</button>
-                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer" data-reason="Actual hours severely exaggerated beyond scope">✍️ Exaggerated hours</button>
-                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer" data-reason="Incomplete deliverable, reverted for genuine redo">🔄 Redo required</button>
-                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer" data-reason="Disqualified under squad discipline protocol">⚖️ Protocol breach</button>
+              <div class="flex flex-wrap gap-1.5 pt-2">
+                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer active:scale-95" data-reason="Fabricated / fraudulent task proof">❌ Fake proof</button>
+                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer active:scale-95" data-reason="Actual hours severely exaggerated beyond scope">✍️ Exaggerated hours</button>
+                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer active:scale-95" data-reason="Incomplete deliverable, reverted for genuine redo">🔄 Redo required</button>
+                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer active:scale-95" data-reason="Disqualified under squad discipline protocol">⚖️ Protocol breach</button>
               </div>
             </div>
 
-            <div class="flex items-center justify-end gap-2.5 pt-2">
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-white/5">
               <button
                 type="button"
                 id="cancel-audit-btn"
-                class="px-4 py-2 text-xs font-mono font-medium text-zinc-400 hover:text-white border border-white/10 hover:bg-white/5 rounded-xl transition-all cursor-pointer"
+                class="px-4 py-2.5 text-xs font-mono font-medium text-zinc-400 hover:text-white border border-white/10 hover:bg-white/5 rounded-xl transition-all cursor-pointer active:scale-95"
               >
                 Cancel
               </button>
@@ -293,9 +298,11 @@ export function renderBombastic(): string {
               </div>
             </div>
 
-            <div class="flex justify-end gap-2.5 pt-2">
-              <button type="button" id="cancel-quick-gym-btn" class="px-4 py-2 text-xs font-mono font-medium text-zinc-400 hover:text-white border border-white/10 hover:bg-white/5 rounded-xl transition-all cursor-pointer">Cancel</button>
-              <button type="submit" id="submit-quick-gym-btn" class="px-5 py-2 text-xs font-mono font-bold text-white bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 shadow-lg shadow-amber-950/50 rounded-xl transition-all cursor-pointer flex items-center gap-1.5">Revoke (-5 pts)</button>
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-white/5">
+              <button type="button" id="cancel-quick-gym-btn" class="px-4 py-2.5 text-xs font-mono font-medium text-zinc-400 hover:text-white border border-white/10 hover:bg-white/5 rounded-xl transition-all cursor-pointer active:scale-95">Cancel</button>
+              <button type="button" id="submit-quick-gym-btn" class="px-5 py-2.5 text-xs font-mono font-bold text-white bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 shadow-lg shadow-amber-950/50 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 active:scale-95">
+                <span>Revoke (-5 pts)</span>
+              </button>
             </div>
           </form>
         </div>
