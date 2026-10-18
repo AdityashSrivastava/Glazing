@@ -39,7 +39,15 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `API Request Failed: ${response.status}`);
+    let msg = `API Request Failed: ${response.status}`;
+    if (typeof errorData.detail === 'string') {
+      msg = errorData.detail;
+    } else if (Array.isArray(errorData.detail)) {
+      msg = errorData.detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
+    } else if (errorData.detail && typeof errorData.detail === 'object') {
+      msg = JSON.stringify(errorData.detail);
+    }
+    throw new Error(msg);
   }
 
   return response.json();
@@ -282,10 +290,72 @@ export async function revokeGymVerdict(targetUserId: string, reason: string): Pr
       body: JSON.stringify({ target_user_id: targetUserId, reason })
     });
   } catch (err: any) {
-    if (err.message && (err.message.includes('404') || err.message.includes('Not Found'))) {
-      throw new Error("Render backend deploy pending: Please click 'Deploy latest commit' in your Render dashboard so overseer endpoints can process point deductions.");
+    console.warn("FastAPI revoke-gym failed, executing direct Supabase fallback:", err);
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const { data: gymTasks } = await supabase.from('tasks')
+        .select('*')
+        .eq('user_id', targetUserId)
+        .ilike('title', '%gym%')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const gymTask = (gymTasks || []).find((t: any) => t.created_at && t.created_at.startsWith(todayStr)) || (gymTasks && gymTasks[0]);
+      let taskIdStr: string | null = null;
+      let ptsDeducted = 5;
+
+      if (gymTask) {
+        taskIdStr = gymTask.id;
+        ptsDeducted = Number(gymTask.points_earned) || 5;
+        await supabase.from('tasks').update({
+          status: 'EXPIRED',
+          points_earned: 0,
+          title: `❌ REVOKED: ${gymTask.title}`
+        }).eq('id', taskIdStr);
+      }
+
+      const { data: u } = await supabase.from('users').select('total_lifetime_points, display_name').eq('id', targetUserId).single();
+      if (u) {
+        const newTotal = Math.max(0, (u.total_lifetime_points || 0) - ptsDeducted);
+        await supabase.from('users').update({ total_lifetime_points: newTotal }).eq('id', targetUserId);
+      }
+
+      const verdict: VerdictItem = {
+        id: crypto.randomUUID(),
+        target_user_id: targetUserId,
+        target_user_name: u?.display_name || 'Operative',
+        task_id: taskIdStr,
+        task_title: 'Daily Gym Checkpoint',
+        action_type: 'REVOKE_GYM',
+        reason: reason.trim(),
+        points_deducted: ptsDeducted,
+        old_values: { status: 'COMPLETED', points: ptsDeducted },
+        new_values: { status: 'EXPIRED', points: 0 },
+        acknowledged: false,
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        await supabase.from('verdicts').insert({
+          id: verdict.id,
+          target_user_id: verdict.target_user_id,
+          task_id: verdict.task_id,
+          action_type: verdict.action_type,
+          reason: verdict.reason,
+          points_deducted: verdict.points_deducted,
+          old_values: verdict.old_values,
+          new_values: verdict.new_values,
+          acknowledged: false
+        });
+      } catch (insertErr) {
+        console.warn("Supabase verdict insert warning:", insertErr);
+      }
+
+      return verdict;
+    } catch (fallbackErr: any) {
+      console.error("Direct fallback failed:", fallbackErr);
+      throw err;
     }
-    throw err;
   }
 }
 
@@ -296,10 +366,65 @@ export async function rejectTaskVerdict(taskId: string, reason: string): Promise
       body: JSON.stringify({ task_id: taskId, reason })
     });
   } catch (err: any) {
-    if (err.message && (err.message.includes('404') || err.message.includes('Not Found'))) {
-      throw new Error("Render backend deploy pending: Please click 'Deploy latest commit' in your Render dashboard so overseer endpoints can process task voids.");
+    console.warn("FastAPI reject-task failed, executing direct Supabase fallback:", err);
+    try {
+      const { data: task } = await supabase.from('tasks').select('*').eq('id', taskId).single();
+      if (!task) throw new Error("Target task not found.");
+
+      const targetUid = task.user_id;
+      const pointsToDeduct = Number(task.points_earned) || 0;
+
+      await supabase.from('tasks').update({
+        status: 'EXPIRED',
+        points_earned: 0,
+        title: `❌ VOIDED: ${task.title}`
+      }).eq('id', taskId);
+
+      if (pointsToDeduct > 0) {
+        const { data: u } = await supabase.from('users').select('total_lifetime_points').eq('id', targetUid).single();
+        if (u) {
+          const newTotal = Math.max(0, (u.total_lifetime_points || 0) - pointsToDeduct);
+          await supabase.from('users').update({ total_lifetime_points: newTotal }).eq('id', targetUid);
+        }
+      }
+
+      const { data: uData } = await supabase.from('users').select('display_name').eq('id', targetUid).single();
+      const verdict: VerdictItem = {
+        id: crypto.randomUUID(),
+        target_user_id: targetUid,
+        target_user_name: uData?.display_name || 'Operative',
+        task_id: taskId,
+        task_title: task.title,
+        action_type: 'REJECT_TASK',
+        reason: reason.trim(),
+        points_deducted: pointsToDeduct,
+        old_values: { status: task.status, points: pointsToDeduct },
+        new_values: { status: 'EXPIRED', points: 0 },
+        acknowledged: false,
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        await supabase.from('verdicts').insert({
+          id: verdict.id,
+          target_user_id: verdict.target_user_id,
+          task_id: verdict.task_id,
+          action_type: verdict.action_type,
+          reason: verdict.reason,
+          points_deducted: verdict.points_deducted,
+          old_values: verdict.old_values,
+          new_values: verdict.new_values,
+          acknowledged: false
+        });
+      } catch (insertErr) {
+        console.warn("Supabase verdict insert warning:", insertErr);
+      }
+
+      return verdict;
+    } catch (fallbackErr: any) {
+      console.error("Direct fallback failed:", fallbackErr);
+      throw err;
     }
-    throw err;
   }
 }
 
@@ -315,10 +440,68 @@ export async function rewriteTaskVerdict(taskId: string, newTitle: string, newAc
       })
     });
   } catch (err: any) {
-    if (err.message && (err.message.includes('404') || err.message.includes('Not Found'))) {
-      throw new Error("Render backend deploy pending: Please click 'Deploy latest commit' in your Render dashboard so overseer endpoints can rewrite tasks.");
+    console.warn("FastAPI rewrite-task failed, executing direct Supabase fallback:", err);
+    try {
+      const { data: task } = await supabase.from('tasks').select('*').eq('id', taskId).single();
+      if (!task) throw new Error("Target task not found.");
+
+      const oldPoints = Number(task.points_earned) || 0;
+      const hours = Number(newActualHours) || 1.0;
+      let newPoints = Math.round(hours * 7);
+      if (task.status === 'COMPLETED') newPoints += 5;
+      const pointDelta = Math.max(0, oldPoints - newPoints);
+
+      await supabase.from('tasks').update({
+        title: newTitle.trim(),
+        actual_hours: hours,
+        points_earned: newPoints
+      }).eq('id', taskId);
+
+      if (pointDelta > 0) {
+        const { data: u } = await supabase.from('users').select('total_lifetime_points').eq('id', task.user_id).single();
+        if (u) {
+          const newTotal = Math.max(0, (u.total_lifetime_points || 0) - pointDelta);
+          await supabase.from('users').update({ total_lifetime_points: newTotal }).eq('id', task.user_id);
+        }
+      }
+
+      const { data: uData } = await supabase.from('users').select('display_name').eq('id', task.user_id).single();
+      const verdict: VerdictItem = {
+        id: crypto.randomUUID(),
+        target_user_id: task.user_id,
+        target_user_name: uData?.display_name || 'Operative',
+        task_id: taskId,
+        task_title: newTitle.trim(),
+        action_type: 'REWRITE_TASK',
+        reason: reason.trim(),
+        points_deducted: pointDelta,
+        old_values: { title: task.title, hours: task.actual_hours, points: oldPoints },
+        new_values: { title: newTitle.trim(), hours, points: newPoints },
+        acknowledged: false,
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        await supabase.from('verdicts').insert({
+          id: verdict.id,
+          target_user_id: verdict.target_user_id,
+          task_id: verdict.task_id,
+          action_type: verdict.action_type,
+          reason: verdict.reason,
+          points_deducted: verdict.points_deducted,
+          old_values: verdict.old_values,
+          new_values: verdict.new_values,
+          acknowledged: false
+        });
+      } catch (insertErr) {
+        console.warn("Supabase verdict insert warning:", insertErr);
+      }
+
+      return verdict;
+    } catch (fallbackErr: any) {
+      console.error("Direct fallback failed:", fallbackErr);
+      throw err;
     }
-    throw err;
   }
 }
 
@@ -329,10 +512,64 @@ export async function revertPendingVerdict(taskId: string, reason: string): Prom
       body: JSON.stringify({ task_id: taskId, reason })
     });
   } catch (err: any) {
-    if (err.message && (err.message.includes('404') || err.message.includes('Not Found'))) {
-      throw new Error("Render backend deploy pending: Please click 'Deploy latest commit' in your Render dashboard so overseer endpoints can revert tasks.");
+    console.warn("FastAPI revert-pending failed, executing direct Supabase fallback:", err);
+    try {
+      const { data: task } = await supabase.from('tasks').select('*').eq('id', taskId).single();
+      if (!task) throw new Error("Target task not found.");
+
+      const pointsToDeduct = Number(task.points_earned) || 0;
+      await supabase.from('tasks').update({
+        status: 'PENDING',
+        points_earned: 0,
+        completed_at: null,
+        proof_url: null
+      }).eq('id', taskId);
+
+      if (pointsToDeduct > 0) {
+        const { data: u } = await supabase.from('users').select('total_lifetime_points').eq('id', task.user_id).single();
+        if (u) {
+          const newTotal = Math.max(0, (u.total_lifetime_points || 0) - pointsToDeduct);
+          await supabase.from('users').update({ total_lifetime_points: newTotal }).eq('id', task.user_id);
+        }
+      }
+
+      const { data: uData } = await supabase.from('users').select('display_name').eq('id', task.user_id).single();
+      const verdict: VerdictItem = {
+        id: crypto.randomUUID(),
+        target_user_id: task.user_id,
+        target_user_name: uData?.display_name || 'Operative',
+        task_id: taskId,
+        task_title: task.title,
+        action_type: 'REVERT_PENDING',
+        reason: reason.trim(),
+        points_deducted: pointsToDeduct,
+        old_values: { status: 'COMPLETED', points: pointsToDeduct },
+        new_values: { status: 'PENDING', points: 0 },
+        acknowledged: false,
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        await supabase.from('verdicts').insert({
+          id: verdict.id,
+          target_user_id: verdict.target_user_id,
+          task_id: verdict.task_id,
+          action_type: verdict.action_type,
+          reason: verdict.reason,
+          points_deducted: verdict.points_deducted,
+          old_values: verdict.old_values,
+          new_values: verdict.new_values,
+          acknowledged: false
+        });
+      } catch (insertErr) {
+        console.warn("Supabase verdict insert warning:", insertErr);
+      }
+
+      return verdict;
+    } catch (fallbackErr: any) {
+      console.error("Direct fallback failed:", fallbackErr);
+      throw err;
     }
-    throw err;
   }
 }
 
@@ -340,21 +577,55 @@ export async function getPendingVerdicts(): Promise<VerdictItem[]> {
   try {
     return await apiFetch('/verdicts/pending');
   } catch {
-    return [];
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return [];
+      const currentUid = session.user.id;
+      const [{ data: vList }, { data: tasksData }] = await Promise.all([
+        supabase.from('verdicts').select('*').eq('target_user_id', currentUid).eq('acknowledged', false).order('created_at', { ascending: false }),
+        supabase.from('tasks').select('id, title')
+      ]);
+      const taskMap = new Map((tasksData || []).map((t: any) => [t.id, t.title]));
+      return (vList || []).map((v: any) => ({
+        ...v,
+        task_title: taskMap.get(v.task_id) || (v.action_type === 'REVOKE_GYM' ? 'Daily Gym Checkpoint' : 'Directive')
+      })) as VerdictItem[];
+    } catch {
+      return [];
+    }
   }
 }
 
 export async function acknowledgeVerdict(verdictId: string): Promise<void> {
-  await apiFetch(`/verdicts/${verdictId}/acknowledge`, {
-    method: 'POST'
-  });
+  try {
+    await apiFetch(`/verdicts/${verdictId}/acknowledge`, { method: 'POST' });
+  } catch {
+    try {
+      await supabase.from('verdicts').update({ acknowledged: true }).eq('id', verdictId);
+    } catch {}
+  }
 }
 
 export async function getVerdictsFeed(): Promise<VerdictItem[]> {
   try {
     return await apiFetch('/verdicts/feed');
   } catch {
-    return [];
+    try {
+      const [{ data: vList }, { data: usersData }, { data: tasksData }] = await Promise.all([
+        supabase.from('verdicts').select('*').eq('acknowledged', false).order('created_at', { ascending: false }).limit(20),
+        supabase.from('users').select('id, display_name'),
+        supabase.from('tasks').select('id, title')
+      ]);
+      const userMap = new Map((usersData || []).map((u: any) => [u.id, u.display_name]));
+      const taskMap = new Map((tasksData || []).map((t: any) => [t.id, t.title]));
+      return (vList || []).map((v: any) => ({
+        ...v,
+        target_user_name: userMap.get(v.target_user_id) || 'Operative',
+        task_title: taskMap.get(v.task_id) || (v.action_type === 'REVOKE_GYM' ? 'Daily Gym Checkpoint' : 'Directive')
+      })) as VerdictItem[];
+    } catch {
+      return [];
+    }
   }
 }
 

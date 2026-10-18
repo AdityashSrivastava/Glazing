@@ -552,19 +552,50 @@ async def revert_pending_verdict(
     return VerdictBase(**verdict)
 
 
+def _enrich_verdict_records(records: List[Dict[str, Any]]) -> List[VerdictBase]:
+    if not records:
+        return []
+    user_map = get_cached_user_map()
+    task_ids = [str(r.get("task_id")) for r in records if r.get("task_id")]
+    task_title_map = {}
+    if task_ids:
+        try:
+            t_res = db.table("tasks").select("id, title").in_("id", task_ids).execute()
+            task_title_map = {str(t["id"]): t.get("title") for t in (t_res.data or [])}
+        except Exception:
+            pass
+
+    enriched = []
+    for r in records:
+        data = dict(r)
+        uid = str(data.get("target_user_id"))
+        if not data.get("target_user_name") or data.get("target_user_name") == "Operative":
+            data["target_user_name"] = user_map.get(uid, "Operative")
+        
+        tid = str(data.get("task_id")) if data.get("task_id") else None
+        if not data.get("task_title"):
+            if tid and tid in task_title_map:
+                data["task_title"] = task_title_map[tid]
+            elif data.get("action_type") == "REVOKE_GYM":
+                data["task_title"] = "Daily Gym Checkpoint"
+            else:
+                data["task_title"] = "Assigned Directive"
+        enriched.append(VerdictBase(**data))
+    return enriched
+
+
 @router.get("/api/admin/verdicts", response_model=List[VerdictBase])
 async def get_all_verdicts_admin(
     _admin_id: str = Depends(verify_overseer_access)
 ):
     """Fetches all judgments ever recorded."""
-    # Check DB first
     try:
         res = db.table("verdicts").select("*").order("created_at", desc=True).limit(50).execute()
         if res.data:
-            return [VerdictBase(**v) for v in res.data]
+            return _enrich_verdict_records(res.data)
     except Exception:
         pass
-    return [VerdictBase(**v) for v in _in_memory_verdicts]
+    return _enrich_verdict_records(_in_memory_verdicts)
 
 
 # -------------------------------------------------------------
@@ -585,7 +616,7 @@ async def get_my_pending_verdicts(
             .order("created_at", desc=True) \
             .execute()
         if res.data:
-            return [VerdictBase(**v) for v in res.data]
+            return _enrich_verdict_records(res.data)
     except Exception:
         pass
 
@@ -594,7 +625,7 @@ async def get_my_pending_verdicts(
         v for v in _in_memory_verdicts
         if str(v.get("target_user_id")) == current_user_id and not v.get("acknowledged")
     ]
-    return [VerdictBase(**v) for v in matching]
+    return _enrich_verdict_records(matching)
 
 
 @router.post("/api/verdicts/{verdict_id}/acknowledge")
@@ -630,8 +661,8 @@ async def get_verdicts_feed(
     try:
         res = db.table("verdicts").select("*").eq("acknowledged", False).order("created_at", desc=True).limit(20).execute()
         if res.data:
-            return [VerdictBase(**v) for v in res.data]
+            return _enrich_verdict_records(res.data)
     except Exception:
         pass
     unack = [v for v in _in_memory_verdicts if not v.get("acknowledged")]
-    return [VerdictBase(**v) for v in unack[:20]]
+    return _enrich_verdict_records(unack[:20])

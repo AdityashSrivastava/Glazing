@@ -41,7 +41,7 @@ export function renderBombastic(): string {
               class="px-2.5 py-1 rounded-lg border border-white/10 hover:border-rose-500/40 text-zinc-300 hover:text-white text-xs font-mono transition-colors flex items-center gap-1.5 cursor-pointer"
               title="Refresh Telemetry"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              <svg id="bombastic-refresh-spinner" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
               <span>SYNC</span>
             </button>
             <a
@@ -310,6 +310,7 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
   const tasksTbody = document.getElementById('unmasked-tasks-tbody');
   const verdictsList = document.getElementById('verdicts-history-list');
   const refreshBtn = document.getElementById('bombastic-refresh-btn');
+  const refreshSpinner = document.getElementById('bombastic-refresh-spinner');
   const lastUpdatedEl = document.getElementById('presence-last-updated');
 
   const auditModal = document.getElementById('audit-action-modal') as HTMLDivElement;
@@ -349,7 +350,7 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
   // Load telemetry
   async function loadAllOverseerTelemetry() {
     try {
-      if (refreshBtn) refreshBtn.classList.add('animate-spin');
+      if (refreshSpinner) refreshSpinner.classList.add('animate-spin');
 
       const [presenceRes, tasksRes, verdictsRes] = await Promise.allSettled([
         getSquadPresence(),
@@ -412,6 +413,7 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
       console.error("Overseer load error:", err);
       showNotification(`Overseer fetch error: ${err.message}`, 'error');
     } finally {
+      if (refreshSpinner) refreshSpinner.classList.remove('animate-spin');
       if (refreshBtn) refreshBtn.classList.remove('animate-spin');
     }
   }
