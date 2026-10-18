@@ -347,9 +347,11 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
       } else {
         console.error("Presence load failed:", presenceRes.reason);
         if (presenceGrid) {
+          const is404 = presenceRes.reason?.message?.includes('404') || presenceRes.reason?.message?.includes('Not Found');
           presenceGrid.innerHTML = `
-            <div class="col-span-1 sm:col-span-2 lg:col-span-5 p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 text-rose-400 text-xs font-mono text-center">
-              ⚠️ Telemetry link disrupted: ${escapeHtml(presenceRes.reason?.message || 'Server error')}
+            <div class="col-span-1 sm:col-span-2 lg:col-span-5 p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 text-rose-400 text-xs font-mono text-center space-y-1">
+              <div>⚠️ Telemetry link disrupted: ${escapeHtml(presenceRes.reason?.message || 'Server error')}</div>
+              ${is404 ? '<div class="text-[11px] text-zinc-400">Backend on Render needs redeployment: Go to dashboard.render.com &rarr; Manual Deploy &rarr; Deploy latest commit.</div>' : ''}
             </div>
           `;
         }
@@ -361,10 +363,12 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
       } else {
         console.error("Tasks load failed:", tasksRes.reason);
         if (tasksTbody) {
+          const is404 = tasksRes.reason?.message?.includes('404') || tasksRes.reason?.message?.includes('Not Found');
           tasksTbody.innerHTML = `
             <tr>
               <td colspan="7" class="py-8 text-center text-rose-400 font-mono text-xs">
-                ⚠️ Failed to decrypt task stream: ${escapeHtml(tasksRes.reason?.message || 'Server error')}
+                <div>⚠️ Failed to decrypt task stream: ${escapeHtml(tasksRes.reason?.message || 'Server error')}</div>
+                ${is404 ? '<div class="text-[11px] text-zinc-400 mt-1">Backend on Render needs redeployment: Go to dashboard.render.com &rarr; Manual Deploy &rarr; Deploy latest commit.</div>' : ''}
               </td>
             </tr>
           `;
