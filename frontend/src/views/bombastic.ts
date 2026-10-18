@@ -255,7 +255,11 @@ export function renderBombastic(): string {
             <div>
               <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1">Select Operative</label>
               <select id="quick-gym-user-select" class="theme-input font-mono text-xs w-full h-9 px-3 bg-black border border-white/10 text-white rounded-xl">
-                <!-- Dynamically populated -->
+                <option value="3bc1639a-148d-42c3-9dc2-ba6d84547ba1">Adityash (adityash@glazing.com)</option>
+                <option value="cd06e10c-cb1e-4ac4-a8e4-c1dcca5df973">Manas (manas@glazing.com)</option>
+                <option value="d97c27ee-0548-4a4f-b485-79f974fb6bd1">Shivansh (shivansh@glazing.com)</option>
+                <option value="4b4bb28a-7938-468b-b6dd-e7159c96b515">Praveen (praveen@glazing.com)</option>
+                <option value="18baa0cd-2063-4aca-93f8-73cdf97cdd95">Harshit (harshit@glazing.com)</option>
               </select>
             </div>
 
@@ -326,28 +330,58 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
     try {
       if (refreshBtn) refreshBtn.classList.add('animate-spin');
 
-      const [presence, tasks, verdicts] = await Promise.all([
+      const [presenceRes, tasksRes, verdictsRes] = await Promise.allSettled([
         getSquadPresence(),
         getUnmaskedTasks(),
         getVerdictsFeed()
       ]);
 
-      squadOperatives = presence || [];
-      allUnmaskedTasks = tasks || [];
+      if (presenceRes.status === 'fulfilled') {
+        squadOperatives = presenceRes.value || [];
+        renderPresenceGrid(squadOperatives);
+        if (quickGymUserSelect && squadOperatives.length > 0) {
+          quickGymUserSelect.innerHTML = squadOperatives.map(op => `
+            <option value="${op.user_id}">${escapeHtml(op.display_name)} (${op.email})</option>
+          `).join('');
+        }
+      } else {
+        console.error("Presence load failed:", presenceRes.reason);
+        if (presenceGrid) {
+          presenceGrid.innerHTML = `
+            <div class="col-span-1 sm:col-span-2 lg:col-span-5 p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 text-rose-400 text-xs font-mono text-center">
+              ⚠️ Telemetry link disrupted: ${escapeHtml(presenceRes.reason?.message || 'Server error')}
+            </div>
+          `;
+        }
+      }
 
-      renderPresenceGrid(squadOperatives);
-      renderTasksTable();
-      renderVerdictsLedger(verdicts || []);
+      if (tasksRes.status === 'fulfilled') {
+        allUnmaskedTasks = tasksRes.value || [];
+        renderTasksTable();
+      } else {
+        console.error("Tasks load failed:", tasksRes.reason);
+        if (tasksTbody) {
+          tasksTbody.innerHTML = `
+            <tr>
+              <td colspan="7" class="py-8 text-center text-rose-400 font-mono text-xs">
+                ⚠️ Failed to decrypt task stream: ${escapeHtml(tasksRes.reason?.message || 'Server error')}
+              </td>
+            </tr>
+          `;
+        }
+      }
+
+      if (verdictsRes.status === 'fulfilled') {
+        renderVerdictsLedger(verdictsRes.value || []);
+      } else {
+        console.error("Verdicts load failed:", verdictsRes.reason);
+        if (verdictsList) {
+          verdictsList.innerHTML = `<p class="text-xs text-rose-400 font-mono">⚠️ Failed to load judgments ledger: ${escapeHtml(verdictsRes.reason?.message || 'Server error')}</p>`;
+        }
+      }
 
       if (lastUpdatedEl) {
         lastUpdatedEl.textContent = `Updated: ${new Date().toLocaleTimeString('en-IN', { hour12: false })}`;
-      }
-
-      // Populate Quick Gym Select
-      if (quickGymUserSelect) {
-        quickGymUserSelect.innerHTML = squadOperatives.map(op => `
-          <option value="${op.user_id}">${escapeHtml(op.display_name)} (${op.email})</option>
-        `).join('');
       }
     } catch (err: any) {
       console.error("Overseer load error:", err);
@@ -649,7 +683,14 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
 
   // Quick Gym Modal Bindings
   if (quickGymBtn && quickGymModal) {
-    quickGymBtn.addEventListener('click', () => quickGymModal.classList.remove('hidden'));
+    quickGymBtn.addEventListener('click', () => {
+      if (squadOperatives && squadOperatives.length > 0 && quickGymUserSelect) {
+        quickGymUserSelect.innerHTML = squadOperatives.map(op => `
+          <option value="${op.user_id}">${escapeHtml(op.display_name)} (${op.email})</option>
+        `).join('');
+      }
+      quickGymModal.classList.remove('hidden');
+    });
   }
   if (closeQuickGymBtn) closeQuickGymBtn.addEventListener('click', () => quickGymModal.classList.add('hidden'));
   if (cancelQuickGymBtn) cancelQuickGymBtn.addEventListener('click', () => quickGymModal.classList.add('hidden'));
@@ -722,6 +763,9 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
     }
   };
   window.addEventListener('presence-sync', handlePresenceSync);
+
+  // Trigger initial telemetry sync immediately on cockpit mount
+  loadAllOverseerTelemetry();
 
   // Polling every 20s while cockpit is open
   const interval = setInterval(loadAllOverseerTelemetry, 20000);
