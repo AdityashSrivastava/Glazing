@@ -11,9 +11,16 @@ export function renderVerdictModal(): string {
         <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-rose-500 to-red-600"></div>
 
         <div class="flex items-start justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 flex items-center justify-center text-xl font-bold font-mono shadow-inner">
-              ⚖️
+          <div class="flex items-center gap-3.5">
+            <div class="relative shrink-0">
+              <img 
+                src="/bombastic.png" 
+                alt="Mr. Boombastic" 
+                class="w-14 h-14 rounded-2xl object-cover border-2 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.35)] bg-black"
+              />
+              <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-rose-600 border border-black flex items-center justify-center text-[10px] shadow" title="One Above All Authority">
+                ⚖️
+              </div>
             </div>
             <div>
               <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-mono font-bold tracking-widest uppercase mb-1">
@@ -122,13 +129,15 @@ function displayCurrentVerdict() {
   overlay.classList.remove('hidden');
 
   // One-time listener for accept button
-  acceptBtn.onclick = async () => {
+    acceptBtn.onclick = async () => {
     acceptBtn.textContent = 'Acknowledging...';
     try {
       await acknowledgeVerdict(v.id);
+      window.dispatchEvent(new CustomEvent('verdict-received'));
       currentVerdictIndex++;
       displayCurrentVerdict();
     } catch (e) {
+      window.dispatchEvent(new CustomEvent('verdict-received'));
       currentVerdictIndex++;
       displayCurrentVerdict();
     } finally {

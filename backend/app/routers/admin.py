@@ -351,15 +351,15 @@ async def revoke_gym_verdict(
     if gym_task:
         task_id_str = str(gym_task["id"])
         pts_deducted = int(gym_task.get("points_earned") or 5)
-        # Delete or set false gym check-in task to EXPIRED
+        # Expire false gym check-in task and wipe points (preserves foreign key for verdicts)
         try:
-            db.table("tasks").delete().eq("id", task_id_str).execute()
-        except Exception:
             db.table("tasks").update({
                 "status": "EXPIRED",
                 "points_earned": 0,
                 "title": f"❌ REVOKED: {gym_task.get('title')}"
             }).eq("id", task_id_str).execute()
+        except Exception as e:
+            print(f"gym task update warning: {e}")
 
     # Deduct points atomically
     overseer_deduct_points(target_uid, pts_deducted)
@@ -624,13 +624,14 @@ async def get_verdicts_feed(
     _current_user_id: str = Depends(get_current_user)
 ):
     """
-    Returns recent verdicts for the public activity feed (squad shaming).
-    Operatives see: '⚖️ Misterbombastic has judged [Operative] - [Action]: [Reason]'
+    Returns recent unacknowledged verdicts for the public activity feed.
+    Once acknowledged by the penalized operative, the notification is removed from the feed.
     """
     try:
-        res = db.table("verdicts").select("*").order("created_at", desc=True).limit(20).execute()
+        res = db.table("verdicts").select("*").eq("acknowledged", False).order("created_at", desc=True).limit(20).execute()
         if res.data:
             return [VerdictBase(**v) for v in res.data]
     except Exception:
         pass
-    return [VerdictBase(**v) for v in _in_memory_verdicts[:20]]
+    unack = [v for v in _in_memory_verdicts if not v.get("acknowledged")]
+    return [VerdictBase(**v) for v in unack[:20]]

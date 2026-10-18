@@ -22,8 +22,8 @@ export function renderBombastic(): string {
       <header class="sticky top-0 z-40 w-full h-[54px] bg-[#0c0a09]/90 border-b border-rose-500/20 backdrop-blur-xl flex items-center shadow-lg shadow-black/40">
         <div class="max-w-[1340px] w-full mx-auto px-4 md:px-6 flex items-center justify-between">
           <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-2">
-              <span class="text-xl">👁️</span>
+            <div class="flex items-center space-x-2.5">
+              <img src="/bombastic.png" alt="Mr. Boombastic" class="w-7 h-7 rounded-lg object-cover border border-rose-500/40 shadow-sm" />
               <span class="font-mono font-black text-sm tracking-widest text-rose-500 uppercase">MISTERBOMBASTIC</span>
             </div>
             <span class="hidden sm:inline-block px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 font-mono text-[10px] font-bold tracking-wider">
@@ -167,8 +167,8 @@ export function renderBombastic(): string {
           <div class="absolute -top-24 -right-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
           <div class="flex items-center justify-between border-b border-white/10 pb-4">
-            <div class="flex items-center gap-2.5">
-              <div class="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center text-lg font-bold">⚖️</div>
+            <div class="flex items-center gap-3">
+              <img src="/bombastic.png" alt="Mr. Boombastic" class="w-10 h-10 rounded-xl object-cover border border-rose-500/40 shadow-inner" />
               <div>
                 <div class="text-[10px] font-mono uppercase tracking-wider text-rose-400 font-bold">One Above All Authority</div>
                 <h3 class="text-base font-bold text-white font-mono uppercase tracking-tight">Issue Overseer Verdict</h3>
@@ -256,8 +256,8 @@ export function renderBombastic(): string {
           <div class="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
           <div class="flex items-center justify-between border-b border-white/10 pb-4">
-            <div class="flex items-center gap-2.5">
-              <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-lg font-bold">🏋️</div>
+            <div class="flex items-center gap-3">
+              <img src="/bombastic.png" alt="Mr. Boombastic" class="w-10 h-10 rounded-xl object-cover border border-amber-500/40 shadow-inner" />
               <div>
                 <div class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">Authoritative Sanction</div>
                 <h3 class="text-base font-bold text-white font-mono uppercase tracking-tight">Revoke Gym Check-in</h3>

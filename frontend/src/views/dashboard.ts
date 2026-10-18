@@ -995,10 +995,11 @@ function renderFilteredTasks(container: HTMLDivElement) {
     return;
   }
 
-  // Render cards
-  const verdictsHtml = (squadVerdicts && squadVerdicts.length > 0) ? `
+  // Render cards (Only show unacknowledged verdicts in public feed)
+  const unackVerdicts = (squadVerdicts || []).filter(v => !v.acknowledged);
+  const verdictsHtml = (unackVerdicts.length > 0) ? `
     <div class="space-y-2 mb-4">
-      ${squadVerdicts.slice(0, 3).map(v => {
+      ${unackVerdicts.slice(0, 3).map(v => {
         const actionLabels: Record<string, string> = {
           'REVOKE_GYM': '🏋️ GYM CHECK-IN REVOKED',
           'REJECT_TASK': '❌ TASK DECLARED FAKE & VOIDED',
@@ -1008,8 +1009,8 @@ function renderFilteredTasks(container: HTMLDivElement) {
         const label = actionLabels[v.action_type] || v.action_type;
         return `
           <div class="p-3.5 rounded-2xl bg-[#120a0b] border border-rose-500/30 flex items-start gap-3 shadow-lg shadow-black/40 text-left">
-            <div class="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 flex items-center justify-center text-sm font-bold shrink-0">
-              ⚖️
+            <div class="w-9 h-9 rounded-xl overflow-hidden border border-rose-500/40 shrink-0 bg-black shadow-inner">
+              <img src="/bombastic.png" alt="Mr. Boombastic" class="w-full h-full object-cover" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between gap-2">
