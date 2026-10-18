@@ -415,4 +415,33 @@ select:-webkit-autofill {
   background: var(--text-body);
 }
 
+/* Overseer Verdict Atmospheric Energy Aura & Physics */
+.verdict-ambient-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 63, 94, 0.4) 0%, rgba(225, 29, 72, 0.15) 50%, transparent 70%);
+  filter: blur(24px);
+  animation: verdictGlowPulse 2.8s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes verdictGlowPulse {
+  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+}
+
+.verdict-rat-craft {
+  display: inline-block;
+  animation: verdictHover 3s ease-in-out infinite;
+  filter: drop-shadow(0 10px 24px rgba(244, 63, 94, 0.45));
+}
+@keyframes verdictHover {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-7px) scale(1.04); }
+}
+
 
