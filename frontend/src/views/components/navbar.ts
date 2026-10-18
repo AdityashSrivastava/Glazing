@@ -152,6 +152,10 @@ export function renderNavbar(activeTab: 'dashboard' | 'leaderboard' | 'goals' | 
                 <a href="#" id="menu-leaderboard" class="block px-4 py-2 text-[13px] text-body hover:text-primary hover:bg-surface transition-colors">Leaderboard</a>
                 <a href="#" id="menu-goals" class="block px-4 py-2 text-[13px] text-body hover:text-primary hover:bg-surface transition-colors">Objectives & Goals</a>
                 <a href="#" id="menu-timer" class="block px-4 py-2 text-[13px] text-body hover:text-primary hover:bg-surface transition-colors">Pomodoro Timer</a>
+                <a href="#/bombastic" id="menu-bombastic" class="hidden px-4 py-2 text-[13px] text-rose-500 font-mono hover:bg-rose-500/10 transition-colors flex items-center gap-2">
+                  <span>👁️</span>
+                  <span>Overseer Cockpit</span>
+                </a>
                 <div class="border-t border-border my-1"></div>
                 <button type="button" id="menu-change-pwd" class="w-full text-left block px-4 py-2 text-[13px] text-primary hover:bg-surface transition-colors flex items-center gap-2">
                   <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
@@ -269,8 +273,20 @@ export function setupNavbarLogic(navigateFn: (route: string) => void) {
       if (initialEl && (!initialEl.textContent || initialEl.textContent === 'U')) {
         initialEl.textContent = fallbackInitial;
       }
+
+      if (email.toLowerCase() === 'adityash@glazing.com') {
+        const menuBombastic = document.getElementById('menu-bombastic');
+        if (menuBombastic) {
+          menuBombastic.classList.remove('hidden');
+          menuBombastic.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateFn('bombastic');
+          });
+        }
+      }
     }
   });
+
 
   apiFetch('/users/me')
     .then((user: any) => {

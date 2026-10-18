@@ -101,6 +101,37 @@ CREATE TABLE public.daily_snapshots (
 );
 ```
 
+### 2.6. `operative_presence` Table (Real-time Telemetry & Heartbeat)
+Tracks when operatives open Glazing in their browser, their current active route, and their last heartbeat ping.
+
+```sql
+CREATE TABLE public.operative_presence (
+    user_id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+    is_online BOOLEAN DEFAULT FALSE,
+    current_route VARCHAR(100) DEFAULT 'dashboard',
+    last_heartbeat TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 2.7. `verdicts` Table (Misterbombastic Judgments)
+Tracks judgments handed down by the covert overseer against fake tasks, unearned gym check-ins, or rewritten time logs.
+
+```sql
+CREATE TABLE public.verdicts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    target_user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    task_id UUID REFERENCES public.tasks(id) ON DELETE SET NULL,
+    action_type VARCHAR(50) NOT NULL CHECK (action_type IN ('REVOKE_GYM', 'REJECT_TASK', 'REWRITE_TASK', 'REVERT_PENDING')),
+    reason TEXT NOT NULL,
+    points_deducted INTEGER NOT NULL DEFAULT 0,
+    old_values JSONB,
+    new_values JSONB,
+    acknowledged BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
 ---
 
 ## 3. Performance Indexes

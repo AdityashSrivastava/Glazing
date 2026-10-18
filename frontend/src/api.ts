@@ -156,4 +156,112 @@ export async function resolveWeeklyParty(weekId: string): Promise<ResolvePartyRe
   });
 }
 
+// -----------------------------------------------------------------
+// COVERT OVERSEER (MISTERBOMBASTIC) & PRESENCE TELEMETRY APIS
+// -----------------------------------------------------------------
+
+export interface OperativePresenceItem {
+  user_id: string;
+  display_name: string;
+  email: string;
+  is_online: boolean;
+  current_route: string;
+  last_heartbeat?: string | null;
+  last_seen_relative: string;
+  active_task_title?: string | null;
+  active_timer_mode?: string | null;
+  active_timer_seconds?: number | null;
+  status_label: 'ACTIVE' | 'IN FOCUS' | 'IDLE' | 'OFFLINE';
+}
+
+export interface VerdictItem {
+  id: string;
+  target_user_id: string;
+  target_user_name?: string | null;
+  task_id?: string | null;
+  task_title?: string | null;
+  action_type: 'REVOKE_GYM' | 'REJECT_TASK' | 'REWRITE_TASK' | 'REVERT_PENDING';
+  reason: string;
+  points_deducted: number;
+  old_values?: any;
+  new_values?: any;
+  acknowledged: boolean;
+  created_at: string;
+}
+
+export async function sendHeartbeat(currentRoute: string): Promise<void> {
+  try {
+    await apiFetch('/presence/heartbeat', {
+      method: 'POST',
+      body: JSON.stringify({ current_route: currentRoute })
+    });
+  } catch (err) {
+    // Non-blocking background heartbeat
+  }
+}
+
+export async function getSquadPresence(): Promise<OperativePresenceItem[]> {
+  return apiFetch('/admin/presence');
+}
+
+export async function getUnmaskedTasks(): Promise<any[]> {
+  return apiFetch('/admin/tasks');
+}
+
+export async function revokeGymVerdict(targetUserId: string, reason: string): Promise<VerdictItem> {
+  return apiFetch('/admin/verdict/revoke-gym', {
+    method: 'POST',
+    body: JSON.stringify({ target_user_id: targetUserId, reason })
+  });
+}
+
+export async function rejectTaskVerdict(taskId: string, reason: string): Promise<VerdictItem> {
+  return apiFetch('/admin/verdict/reject-task', {
+    method: 'POST',
+    body: JSON.stringify({ task_id: taskId, reason })
+  });
+}
+
+export async function rewriteTaskVerdict(taskId: string, newTitle: string, newActualHours: number, reason: string): Promise<VerdictItem> {
+  return apiFetch('/admin/verdict/rewrite-task', {
+    method: 'POST',
+    body: JSON.stringify({
+      task_id: taskId,
+      new_title: newTitle,
+      new_actual_hours: newActualHours,
+      reason
+    })
+  });
+}
+
+export async function revertPendingVerdict(taskId: string, reason: string): Promise<VerdictItem> {
+  return apiFetch('/admin/verdict/revert-pending', {
+    method: 'POST',
+    body: JSON.stringify({ task_id: taskId, reason })
+  });
+}
+
+export async function getPendingVerdicts(): Promise<VerdictItem[]> {
+  try {
+    return await apiFetch('/verdicts/pending');
+  } catch {
+    return [];
+  }
+}
+
+export async function acknowledgeVerdict(verdictId: string): Promise<void> {
+  await apiFetch(`/verdicts/${verdictId}/acknowledge`, {
+    method: 'POST'
+  });
+}
+
+export async function getVerdictsFeed(): Promise<VerdictItem[]> {
+  try {
+    return await apiFetch('/verdicts/feed');
+  } catch {
+    return [];
+  }
+}
+
+
 

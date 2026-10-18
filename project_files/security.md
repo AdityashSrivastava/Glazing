@@ -124,3 +124,20 @@ CREATE POLICY "Authenticated users can upload proofs" ON storage.objects FOR INS
 ## 5. Security Edge Cases & Protections
 *   **Time Tampering:** Users cannot pass `created_at` or `completed_at` times from the frontend. The FastAPI backend MUST generate these timestamps using `datetime.now(timezone.utc)` to prevent users from logging tasks in the past to alter yesterday's leaderboard.
 *   **Over-Logging:** The backend endpoint `PATCH /api/tasks/{id}/complete` must sum up all `actual_hours` logged by the user for the current day. If `new_task_hours + daily_total_hours > 24`, return a `400 Bad Request` and reject the transaction.
+
+---
+
+## 6. Misterbombastic Overseer Privilege Separation & Cloaking
+To uphold the covert nature of the "One Above All" admin, strict architectural separation is required:
+
+*   **Endpoint Privilege Gate (`verify_overseer_access`):**
+    *   All administrative audit routes (`/api/admin/*`) require a custom FastAPI dependency `verify_overseer_access(current_user: str = Depends(get_current_user))`.
+    *   The dependency retrieves the user's authoritative email from Supabase Auth.
+    *   If `email != 'adityash@glazing.com'`, the server terminates the request with `403 Forbidden: "Insufficient clearance for overseer protocol."`
+*   **Public Persona Cloaking:**
+    *   The database and public API responses MUST NEVER associate `misterbombastic` actions with Adityash's UUID or name in squad-visible structures.
+    *   Verdicts, feed alerts, and popup payloads list the actor as `"misterbombastic"` (or `"System Overseer"`).
+*   **Presence Telemetry Isolation:**
+    *   The `operative_presence` table allows all authenticated users to report their own heartbeat (`POST /api/presence/heartbeat`), but only `misterbombastic` has permission to read the global squad presence grid (`GET /api/admin/presence`). Peer users can only see standard focus indicator dots.
+*   **Audit Trail & Point Integrity:**
+    *   Every modification by Misterbombastic (revoking gym check-in, modifying task hours, rejecting task) records the before-and-after state in `public.verdicts` and executes atomic points deduction via `atomic_deduct_points()`.

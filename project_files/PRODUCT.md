@@ -30,6 +30,7 @@ A closed-loop, peer-pressured productivity matrix combining hard deliverables wi
 - **Verifiable Proof of Work**: Completed tasks require proof links or uploaded screenshots with automated domain validation (+5 pts accuracy bonus).
 - **P2P Staking & Bounties**: Operatives stake earned lifetime points on peers' active deliverables.
 - **Privacy Mode**: "Classified Directives" allow masking sensitive task titles while keeping leaderboard verification intact.
+- **Covert Overseer ("Misterbombastic")**: Stealth shadow console accessible exclusively by Adityash (`adityash@glazing.com`). Features live operative presence/heartbeat surveillance, unmasked access to all classified directives, authoritative task/gym audit overrides, and anonymous "Misterbombastic Verdict" squad broadcasts.
 - **Hard Constraints**: Closed-loop authentication strictly limited to the 5 designated operatives; no public registration.
 
 ## Brand Commitments

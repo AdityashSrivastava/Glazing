@@ -17,6 +17,7 @@ The application follows a strict, authenticated-only routing structure.
 *   **`/goals`:** Macro-level view. Renders active long-term goals and progress bars showing how many tasks have been completed under each goal.
 *   **`/history`:** A calendar-based view. Users select a past date to view the archived daily leaderboard and completed tasks for that specific day.
 *   **`/profile/[user_id]`:** Individual user page showing the Skill Radar Chart, lifetime points, and badge/bounty history.
+*   **`#/bombastic` (Covert Route):** The secret overseer cockpit ("One Above All"). Validates that the active session belongs strictly to `adityash@glazing.com`. If accessed by any other user or unauthenticated visitor, immediately redirects to `/dashboard` or `/login` with zero indication that the route exists. Accessible also via keyboard shortcut `Ctrl+Shift+B` when Adityash is logged in.
 
 ---
 
@@ -58,6 +59,30 @@ The application follows a strict, authenticated-only routing structure.
     *   It iterates through the tasks: `if task.is_private and task.user_id != requesting_user.id`.
     *   For those tasks, it alters the response object in memory: `title = "CLASSIFIED TASK"`, `proof_url = null`, `goal_id = null`.
 3.  **UI Rendering:** The Activity Feed renders. Public tasks show full details and thumbnail previews of proof. Private tasks render as a locked, dark grey block showing only: *"User X completed a CLASSIFIED TASK. (+45 pts)"*.
+
+### Journey E: The Shadow Overseer (Misterbombastic Cockpit)
+**Goal:** Adityash accesses the covert overseer console to monitor squad activity and audit task legitimacy.
+1.  **Stealth Activation:** Adityash logs in as `adityash@glazing.com`. Presses `Ctrl+Shift+B` or navigates to `#/bombastic`.
+2.  **Security Verification:** Client checks `session.user.email === 'adityash@glazing.com'`. Frontend renders the distinct Misterbombastic Surveillance HUD.
+3.  **Live Telemetry Surveillance:**
+    *   Misterbombastic sees real-time presence indicators for all 5 operatives (Online/Offline, Heartbeat latency, current route, active focus sessions).
+    *   All tasks—including private/classified directives—are presented **unmasked** with direct proof-of-work inspection and AI fraud heuristics.
+4.  **Audit Actions & Overrides:**
+    *   *Revoke Gym Check-in:* If an operative falsely claimed the daily gym checkpoint, click "Revoke Gym". Prompts for reason. Backend deletes/marks checkpoint task, deducts 5 points from user's lifetime and snapshot totals, and recalculates streak.
+    *   *Reject/Invalidate Task:* Click "Invalidate Task" on fake entries. Backend sets status to `REJECTED_BY_OVERSEER` or nullifies completion, stripping all awarded points.
+    *   *Rewrite Task & Time:* Click "Rewrite Task". Allows editing title, adjusting actual hours, and reducing points to reflect true effort.
+    *   *Demote to Pending:* Click "Revert to Pending". Strips points and moves task back to PENDING so operative must re-submit legitimate proof.
+5.  **Verdict Broadcast:** Backend records the audit event in `public.verdicts` and injects a judgment event into the squad activity feed.
+
+### Journey F: The Verdict Reception (Squad & Operative Flow)
+**Goal:** Operatives experience accountability when judged by Misterbombastic.
+1.  **Target Operative Pop-up:** When the judged operative opens Glazing or receives the live update, an unclosable/prominent modal appears:
+    *   *Title:* `⚖️ MISTERBOMBASTIC VERDICT`
+    *   *Message:* Details the specific action taken (e.g., "Gym Check-in Revoked" or "Task Invalidated"), the points deducted, and the Overseer's written reason.
+    *   Operative must click "Accept Verdict & Repent" to acknowledge.
+2.  **Squad Feed Shaming:** A broadcast entry appears on the central Activity Feed for all 5 operatives:
+    *   *"⚖️ Misterbombastic has judged [Operative Name] — [Action]: [Reason]"*
+    *   Instills peer pressure and deters fraudulent logging while keeping Adityash's identity entirely anonymous.
 
 ---
 

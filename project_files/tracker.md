@@ -78,3 +78,27 @@ To map progress beyond just raw numbers, every Goal (and therefore its child Tas
 5.  **Life** (Personal Habits, Routine, Discipline)
 
 *FastAPI endpoint `GET /api/users/{id}/radar` will group lifetime points by these 5 categories and return the JSON array formatted for Recharts.*
+
+---
+
+## 6. The Overseer Audit & Invalidation Ledger (Misterbombastic)
+When the covert admin `misterbombastic` audits an operative's activity and issues a verdict, the backend applies authoritative mathematical adjustments:
+
+### 6.1. Gym Check-in Revocation
+*   **Trigger:** Overseer flags a false daily gym check-in.
+*   **Action:** Deletes or revokes the `"🏋️ Daily Gym Checkpoint"` task for the target operative for that date.
+*   **Point Adjustment:** Deducts 5 points atomically (`atomic_deduct_points(target_user_id, 5)`).
+*   **Snapshot & Streak:** Subtracts 5 points from today's `daily_snapshots`. Recalculates consecutive check-in dates for the operative's streak.
+
+### 6.2. Task Invalidation / Rejection
+*   **Trigger:** Overseer flags fraudulent or unverified task proof.
+*   **Action:** Task status is set to `REJECTED_BY_OVERSEER`.
+*   **Point Adjustment:** Full deduction of `points_earned` on that task from `users.total_lifetime_points` and today's `daily_snapshots`.
+
+### 6.3. Task Rewrite & Time Adjustment
+*   **Trigger:** Overseer determines task actual hours or points were exaggerated.
+*   **Action:** Overwrites `title`, `actual_hours`, and re-computes `points_earned`. The delta (`old_points - new_points`) is deducted from the operative's lifetime points and current day snapshot.
+
+### 6.4. Revert to Pending
+*   **Trigger:** Task requires genuine redo.
+*   **Action:** Status reset to `PENDING`, `completed_at` cleared, `proof_url` cleared, and previously awarded points deducted.

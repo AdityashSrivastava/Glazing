@@ -88,3 +88,54 @@ def mask_private_task(task: TaskBase, requesting_user_id: UUID) -> TaskBase:
         task.goal_title = None
         task.proof_url = None
     return task
+
+class OperativePresenceItem(BaseModel):
+    user_id: str
+    display_name: str
+    email: Optional[str] = None
+    is_online: bool = False
+    current_route: str = "dashboard"
+    last_heartbeat: Optional[datetime] = None
+    last_seen_relative: str = "Offline"
+    active_task_title: Optional[str] = None
+    active_timer_mode: Optional[str] = None
+    active_timer_seconds: Optional[int] = None
+    status_label: str = "OFFLINE"
+
+class PresenceHeartbeatRequest(BaseModel):
+    current_route: str = "dashboard"
+
+class VerdictBase(BaseModel):
+    id: str
+    target_user_id: str
+    target_user_name: Optional[str] = None
+    task_id: Optional[str] = None
+    task_title: Optional[str] = None
+    action_type: str # 'REVOKE_GYM', 'REJECT_TASK', 'REWRITE_TASK', 'REVERT_PENDING'
+    reason: str
+    points_deducted: int = 0
+    old_values: Optional[dict] = None
+    new_values: Optional[dict] = None
+    acknowledged: bool = False
+    created_at: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class VerdictRevokeGymRequest(BaseModel):
+    target_user_id: str
+    reason: str = Field(..., min_length=3)
+
+class VerdictRejectTaskRequest(BaseModel):
+    task_id: str
+    reason: str = Field(..., min_length=3)
+
+class VerdictRewriteTaskRequest(BaseModel):
+    task_id: str
+    new_title: str = Field(..., min_length=1)
+    new_actual_hours: float = Field(..., gt=0, le=24)
+    reason: str = Field(..., min_length=3)
+
+class VerdictRevertPendingRequest(BaseModel):
+    task_id: str
+    reason: str = Field(..., min_length=3)
+

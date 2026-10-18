@@ -32,8 +32,10 @@ wheels/
 .installed.cfg
 *.egg
 backend/focus_sessions.json
-backend/app/data/focus_sessions.json
+backend/app/data/*.json
+!backend/app/data/.gitkeep
 **/focus_sessions.json
+
 
 # Node / Frontend
 node_modules/

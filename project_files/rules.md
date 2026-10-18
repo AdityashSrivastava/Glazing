@@ -18,10 +18,11 @@ As the AI builder for "Glazing," you must treat these rules as absolute laws. An
 *   **Constraint:** The frontend must NEVER calculate points, deduct bounties, or decide if a user gets a bonus. 
 *   **Action:** ALL mathematical logic (Base points, Completion bonuses, Accuracy bonuses) MUST be written in the FastAPI backend within the `PATCH /api/tasks/{id}/complete` route. The frontend simply displays the `points_earned` returned by the API.
 
-### RULE 3: Strict Privacy Redaction
+### RULE 3: Strict Privacy Redaction (With Master Overseer Exception)
 *   **Context:** Users can mark tasks as `Private`.
-*   **Constraint:** A private task's title, description, goal, and proof URL must NEVER reach the browser of another user. 
+*   **Constraint:** A private task's title, description, goal, and proof URL must NEVER reach the browser of another peer operative.
 *   **Action:** In FastAPI, before returning a list of tasks (e.g., `GET /api/tasks/feed`), you MUST iterate through the tasks. If `task.is_private == True` and `task.user_id != requesting_user.id`, you must overwrite `title = "CLASSIFIED TASK"` and nullify the proof and goal fields *in memory* before serializing to JSON.
+*   **The One Exception:** When the authenticated user is verified as `adityash@glazing.com` querying the dedicated Overseer feed (`GET /api/admin/tasks`), all tasks are returned unmasked with full proof links so Misterbombastic can audit authenticity.
 
 ### RULE 4: Timezone Enforcement (IST Only)
 *   **Context:** The app's core loop depends on a daily reset at 12:00 AM Indian Standard Time (IST).
@@ -42,6 +43,12 @@ As the AI builder for "Glazing," you must treat these rules as absolute laws. An
 *   **Constraint:** Users will try to break the game.
 *   **Action:** FastAPI must reject (`400 Bad Request`) any attempt to log a task where `actual_hours` makes their daily total exceed 24 hours. The frontend must gracefully catch this 400 error and display a shadcn `Toast` explaining the error.
 
+### RULE 8: Covert Overseer & Misterbombastic Integrity
+*   **Context:** The overseer persona `misterbombastic` is a shadow authority known only to Adityash.
+*   **Constraint 1 (Hard Privilege Gate):** All `/api/admin/*` routes must enforce that the caller is authenticated as `adityash@glazing.com`. Any other user or unauthenticated request must receive an immediate `403 Forbidden` with zero metadata leaked.
+*   **Constraint 2 (Identity Cloaking):** The public squad activity feed and verdict popups must NEVER link `misterbombastic` to Adityash. All verdicts are authored and displayed under the mythological moniker `misterbombastic`.
+*   **Constraint 3 (Point Ledger Atomicity):** When Misterbombastic revokes a gym check-in or invalidates/rewrites a task, points must be atomically deducted from `users.total_lifetime_points`, today's `daily_snapshots`, and streak calculations must be updated immediately so leaderboards remain 100% accurate.
+
 ### ACKNOWLEDGEMENT PROTOCOL
 Before writing any code, the AI agent must output:
-*"I have read and internalized the 7 Absolute Directives from rules.md. I understand the closed-loop nature, the FastAPI backend authority, the strict IST timezone, and the mandatory privacy masking. Ready to begin Sprint 1."*
+*"I have read and internalized the 8 Absolute Directives from rules.md. I understand the closed-loop nature, the FastAPI backend authority, the strict IST timezone, the mandatory privacy masking, and the covert Misterbombastic overseer integrity. Ready to begin Sprint 1."*

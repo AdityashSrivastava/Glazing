@@ -11,9 +11,11 @@
 Unlike traditional productivity tools, Glazing is built on the concept of a continuous "race." It combines long-term goal tracking with daily execution, utilizing a point-based leaderboard system that resets dynamically. The platform assumes high trust but enforces strict accountability through evidence uploads and time-estimation accuracy.
 
 ## 2. User Roles & Authentication
-*   **Target Users:** Exactly 5 pre-defined users. 
+*   **Target Users:** Exactly 5 pre-defined users (`Adityash`, `Manas`, `Shivansh`, `Praveen`, `Harshit`). 
 *   **Authentication Model:** Closed-loop authentication. There is no public registration, no "forgot password" flow, and no onboarding. Accounts are manually seeded into the database (via Supabase Auth) by the administrator.
-*   **Permissions:** All 5 users have equal permissions (Standard User). 
+*   **Permissions & Covert Tier:**
+    *   **Standard Operatives:** All 5 users have equal peer permissions on the standard dashboard.
+    *   **The Covert Overseer (`misterbombastic`):** A stealth high-clearance operative persona ("One Above All") accessible **exclusively** by the `Adityash` operative (`adityash@glazing.com`). No other operative knows this overseer exists or who controls it.
 
 ## 3. Core Functional Requirements (Features)
 
@@ -31,11 +33,15 @@ The system differentiates between Macro (Goals) and Micro (Tasks) achievements.
     *   If a task is marked `Public`, all users can see the title, linked goal, and proof of work.
     *   If a task is marked `Private`, the task still contributes to the user's daily total hours and leaderboard points. However, the system must mask the UI for other users.
     *   *Masking Rules:* Title is replaced with `"CLASSIFIED TASK"`. Goal is hidden. Proof of work is hidden. Only the hours logged and points earned are visible to peers.
+    *   *Overseer Exception:* `misterbombastic` has master clearance ("One Above All") and sees all classified directives unmasked to audit proof validity.
 
 ### 3.2. Execution & State Tracking
 *   **Live Status / "Deep Focus":**
     *   Users can toggle their status to "In Progress" or "Deep Focus" on a specific task.
     *   This triggers a visual indicator on the dashboard (e.g., a pulsating green dot next to their avatar) so peers know they are actively working.
+*   **Real-time Presence & Activity Telemetry:**
+    *   Integrates both 30-second heartbeat polling and Supabase Realtime presence channels.
+    *   Tracks when any of the 5 operatives open Glazing, recording live online status, active view, and last-seen timestamps without interrupting the standard user flow.
 *   **Completion Workflow (The Pop-up):**
     *   When a user clicks "Finish" on a task, a mandatory modal appears.
     *   **Input 1 (Required):** `Actual Hours Spent`. The user logs the realistic time it took.
@@ -59,6 +65,24 @@ The system differentiates between Macro (Goals) and Micro (Tasks) achievements.
 *   **The Feed:** The central dashboard features a real-time activity feed showing who just started a task, who finished one, and who went into Deep Focus.
 *   **Bounties (Stretch Goal/Phase 2):** Users can stake their own points to place a bounty on another user's task to incentivize them to finish it by midnight.
 *   **Nudges:** A button on the sidebar to send a ping/notification to a user who has 0 points for the day by 8:00 PM.
+
+### 3.5. The Covert Overseer Console: "Misterbombastic" (One Above All)
+*   **Access & Stealth Architecture:**
+    *   Accessible **strictly** via hidden route `#/bombastic` or keyboard shortcut `Ctrl+Shift+B`.
+    *   Enforces hard backend session verification: `current_user.email == 'adityash@glazing.com'`. All other users receive an immediate silent redirect/403 with no visual trace of the overseer route.
+    *   Completely separate dedicated interface: dark tactical overseer cockpit with real-time squad surveillance radar, classified directive inspector, and audit intervention controls.
+*   **Surveillance & Unmasked Telemetry:**
+    *   Live activity status and tab presence of all 5 operatives (Online, Idle, Last Seen, Current View).
+    *   Unmasked view of all tasks, including Classified Directives (original titles, category, actual hours, and proof URLs/screenshots).
+    *   Automated proof verification flags for suspicious or placeholder submissions.
+*   **Overseer Audit & Override Authority:**
+    *   **Gym Check-in Revocation:** If an operative claimed a daily gym checkpoint without genuinely attending, Misterbombastic can revoke the check-in, deducting 5 points, recalculating consecutive streak days, and resetting today's gym status.
+    *   **Task Invalidation & Rejection:** Invalidate fake or unverified tasks, wiping the awarded points atomically from lifetime, daily, and snapshot tallies.
+    *   **Task Rewrite & Hour Modification:** Rewrite task title, edit logged actual hours, and adjust points earned with custom verdict notes.
+    *   **Demote to Pending:** Demote suspicious completed tasks back to `PENDING` status, forcing re-execution and legitimate proof upload.
+*   **Verdict Execution & Public Squad Shaming:**
+    *   **The Operative Verdict Modal:** When an operative receives a judgment, an unmissable modal popup appears on their screen declaring: *"⚖️ MISTERBOMBASTIC VERDICT: Misterbombastic has judged your execution. Reason: [Reason]. Points Deducted: [X] pts."*
+    *   **Squad Activity Feed Broadcast:** A mysterious, distinct feed alert broadcasts to the squad activity feed: *"⚖️ Misterbombastic has judged [Operative Name] — [Verdict Action & Reason]"*. The true persona behind Misterbombastic remains anonymous and unknown to the squad.
 
 ## 4. User Journey & Application Flow
 1.  **Morning Initialization:** User logs in. Views yesterday's results and current weekly standings.

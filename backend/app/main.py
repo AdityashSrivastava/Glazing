@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import tasks, bounties, users, goals, analytics, tasks_cron, timer, gym
+from app.routers import tasks, bounties, users, goals, analytics, tasks_cron, timer, gym, admin
 
 app = FastAPI(title="Glazing API", version="1.0.0")
 
@@ -12,6 +12,8 @@ app.include_router(analytics.router)
 app.include_router(tasks_cron.router)
 app.include_router(timer.router)
 app.include_router(gym.router)
+app.include_router(admin.router)
+
 
 import os
 import traceback

@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { apiFetch, getGymStatus, checkinGym, getWeeklyAchievers, resolveWeeklyParty } from '../api';
+import { apiFetch, getGymStatus, checkinGym, getWeeklyAchievers, resolveWeeklyParty, getVerdictsFeed, type VerdictItem } from '../api';
 import { renderCompleteModal, openCompleteTaskModal, setupCompleteModalLogic } from './components/complete_modal';
 import { renderWeeklyWinnerModal, setupWeeklyWinnerModalLogic, openWeeklyWinnerModal } from './components/weekly_winner_modal';
 import { renderGymModal, setupGymModalLogic, openGymModal } from './components/gym_modal';
@@ -66,6 +66,7 @@ function getCachedFeed(): Task[] | null {
 // State
 let allTasks: Task[] = [];
 let allGoals: any[] = [];
+let squadVerdicts: VerdictItem[] = [];
 let currentFilterStatus: 'ALL' | 'IN_PROGRESS' | 'COMPLETED' | 'BOUNTY' = 'ALL';
 let currentFilterOperative = 'ALL';
 let currentFilterGoal = 'ALL';
@@ -421,7 +422,17 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
   // 1. Initial Load (Parallel non-blocking telemetry sync)
   initDashboard();
 
+  // Listen for realtime verdict broadcasts to update squad feed instantly
+  const handleVerdictReceived = () => {
+    if (feedContainer) loadFeedAndStats(feedContainer);
+  };
+  window.addEventListener('verdict-received', handleVerdictReceived);
+  window.addEventListener('hashchange', () => {
+    window.removeEventListener('verdict-received', handleVerdictReceived);
+  }, { once: true });
+
   // 2. Weekly Achiever & Paneer Patties Party Protocol Check
+
   getWeeklyAchievers().then(data => {
     const latest = data?.latest_completed_week;
     const preview = data?.current_week_preview;
@@ -781,17 +792,23 @@ async function loadFeedAndStats(container: HTMLDivElement) {
 
     try {
       // 1. Single roundtrip fast telemetry endpoint
-      const telemetry = await apiFetch('/tasks/telemetry');
+      const [telemetry, verdicts] = await Promise.all([
+        apiFetch('/tasks/telemetry'),
+        getVerdictsFeed()
+      ]);
       stats = telemetry.stats;
       tasks = telemetry.tasks || [];
+      squadVerdicts = verdicts || [];
     } catch {
       // 2. Parallel fallback for standard endpoints
-      const [feedRes, statsRes] = await Promise.all([
+      const [feedRes, statsRes, verdicts] = await Promise.all([
         apiFetch('/tasks/feed'),
-        apiFetch('/tasks/stats')
+        apiFetch('/tasks/stats'),
+        getVerdictsFeed()
       ]);
       tasks = feedRes || [];
       stats = statsRes;
+      squadVerdicts = verdicts || [];
     }
 
     if (stats) {
@@ -805,6 +822,7 @@ async function loadFeedAndStats(container: HTMLDivElement) {
       allTasks = tasks;
       updateFilterCounts();
       renderFilteredTasks(container);
+
       try {
         sessionStorage.setItem('glazing_cached_task_feed', JSON.stringify(tasks));
       } catch {}
@@ -978,13 +996,51 @@ function renderFilteredTasks(container: HTMLDivElement) {
   }
 
   // Render cards
-  container.innerHTML = filtered.map(task => {
+  const verdictsHtml = (squadVerdicts && squadVerdicts.length > 0) ? `
+    <div class="space-y-2 mb-4">
+      ${squadVerdicts.slice(0, 3).map(v => {
+        const actionLabels: Record<string, string> = {
+          'REVOKE_GYM': '🏋️ GYM CHECK-IN REVOKED',
+          'REJECT_TASK': '❌ TASK DECLARED FAKE & VOIDED',
+          'REWRITE_TASK': '✍️ TASK AUDITED & HOURS DOCKED',
+          'REVERT_PENDING': '🔄 TASK REVERTED TO PENDING'
+        };
+        const label = actionLabels[v.action_type] || v.action_type;
+        return `
+          <div class="p-3.5 rounded-2xl bg-[#120a0b] border border-rose-500/30 flex items-start gap-3 shadow-lg shadow-black/40 text-left">
+            <div class="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 flex items-center justify-center text-sm font-bold shrink-0">
+              ⚖️
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-mono text-[9px] font-black uppercase tracking-wider text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full">
+                    MISTERBOMBASTIC VERDICT
+                  </span>
+                  <span class="text-xs font-bold text-white font-mono">${escapeHtml(v.target_user_name || 'Operative')}</span>
+                  <span class="text-zinc-600 text-xs">•</span>
+                  <span class="text-xs font-semibold text-rose-300 font-mono">${label}</span>
+                </div>
+                <span class="font-mono text-xs font-black text-rose-400 shrink-0">-${v.points_deducted} PTS</span>
+              </div>
+              <div class="text-xs text-zinc-300 mt-1 italic leading-relaxed">
+                "${escapeHtml(v.reason)}"
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  ` : '';
+
+  container.innerHTML = verdictsHtml + filtered.map(task => {
     const isMe = task.user_id === currentUserId;
     const isClassified = task.title === '[ CLASSIFIED DATA ]';
     const isPending = task.status === 'PENDING';
     const isInProgress = task.status === 'IN_PROGRESS';
     const isCompleted = task.status === 'COMPLETED';
     const isAbandoned = task.status === 'ABANDONED';
+
     
     // Status Badge
     let statusBadge = '';

@@ -152,3 +152,27 @@ async def verify_cron_secret(
 # Backward compatibility alias
 verify_cron_secret_or_user = verify_cron_secret
 
+ADITYASH_USER_ID = "3bc1639a-148d-42c3-9dc2-ba6d84547ba1"
+ADITYASH_EMAIL = "adityash@glazing.com"
+
+async def verify_overseer_access(current_user_id: str = Depends(get_current_user)) -> str:
+    """
+    Guarantees that ONLY operative Adityash can access the covert 'misterbombastic' admin routes.
+    Rejects any other operative with HTTP 403 Forbidden.
+    """
+    if current_user_id == ADITYASH_USER_ID:
+        return current_user_id
+
+    try:
+        auth_user = db.auth.admin.get_user_by_id(current_user_id)
+        if auth_user and auth_user.user and auth_user.user.email and auth_user.user.email.strip().lower() == ADITYASH_EMAIL:
+            return current_user_id
+    except Exception as e:
+        print(f"Overseer check error: {e}")
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Insufficient clearance for overseer protocol."
+    )
+
+

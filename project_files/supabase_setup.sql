@@ -265,4 +265,56 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 15. COVERT OVERSEER (MISTERBOMBASTIC) INFRASTRUCTURE
+-- 15.1. OPERATIVE PRESENCE TABLE (Real-Time Telemetry & Heartbeat)
+CREATE TABLE IF NOT EXISTS public.operative_presence (
+    user_id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+    is_online BOOLEAN DEFAULT FALSE,
+    current_route VARCHAR(100) DEFAULT 'dashboard',
+    last_heartbeat TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 15.2. VERDICTS TABLE (Audit Interventions & Judgments)
+CREATE TABLE IF NOT EXISTS public.verdicts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    target_user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    task_id UUID REFERENCES public.tasks(id) ON DELETE SET NULL,
+    action_type VARCHAR(50) NOT NULL CHECK (action_type IN ('REVOKE_GYM', 'REJECT_TASK', 'REWRITE_TASK', 'REVERT_PENDING')),
+    reason TEXT NOT NULL,
+    points_deducted INTEGER NOT NULL DEFAULT 0,
+    old_values JSONB,
+    new_values JSONB,
+    acknowledged BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for Overseer & Verdicts
+CREATE INDEX IF NOT EXISTS idx_verdicts_target ON public.verdicts(target_user_id, acknowledged);
+CREATE INDEX IF NOT EXISTS idx_verdicts_created ON public.verdicts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_presence_heartbeat ON public.operative_presence(last_heartbeat DESC);
+
+-- Enable RLS
+ALTER TABLE public.operative_presence ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.verdicts ENABLE ROW LEVEL SECURITY;
+
+-- Presence RLS: Users can upsert their own heartbeat, read own presence
+DROP POLICY IF EXISTS "Allow user update own presence" ON public.operative_presence;
+CREATE POLICY "Allow user update own presence" ON public.operative_presence
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Allow read presence" ON public.operative_presence;
+CREATE POLICY "Allow read presence" ON public.operative_presence
+    FOR SELECT USING (true);
+
+-- Verdicts RLS: All users can read verdicts (for public squad shaming), targets can update acknowledged
+DROP POLICY IF EXISTS "Allow read verdicts" ON public.verdicts;
+CREATE POLICY "Allow read verdicts" ON public.verdicts
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow user acknowledge verdict" ON public.verdicts;
+CREATE POLICY "Allow user acknowledge verdict" ON public.verdicts
+    FOR UPDATE USING (auth.uid() = target_user_id);
+
+
 
