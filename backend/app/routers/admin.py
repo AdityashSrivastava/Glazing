@@ -576,6 +576,10 @@ def _enrich_verdict_records(records: List[Dict[str, Any]]) -> List[VerdictBase]:
         if not data.get("task_title"):
             if tid and tid in task_title_map:
                 data["task_title"] = task_title_map[tid]
+            elif isinstance(data.get("old_values"), dict) and data["old_values"].get("title"):
+                data["task_title"] = data["old_values"]["title"]
+            elif isinstance(data.get("new_values"), dict) and data["new_values"].get("title"):
+                data["task_title"] = data["new_values"]["title"]
             elif data.get("action_type") == "REVOKE_GYM":
                 data["task_title"] = "Daily Gym Checkpoint"
             else:
@@ -603,17 +607,16 @@ async def get_all_verdicts_admin(
 # -------------------------------------------------------------
 @router.get("/api/verdicts/pending", response_model=List[VerdictBase])
 async def get_my_pending_verdicts(
-    current_user_id: str = Depends(get_current_user)
+    _current_user_id: str = Depends(get_current_user)
 ):
     """
-    Returns unacknowledged verdicts for the currently logged in operative
-    so the UI can pop up the MISTERBOMBASTIC VERDICT modal.
+    Returns recent unacknowledged verdicts so the UI can pop up the MISTERBOMBASTIC VERDICT modal on everyone's screen.
     """
     try:
         res = db.table("verdicts").select("*") \
-            .eq("target_user_id", current_user_id) \
             .eq("acknowledged", False) \
             .order("created_at", desc=True) \
+            .limit(10) \
             .execute()
         if res.data:
             return _enrich_verdict_records(res.data)
@@ -623,9 +626,9 @@ async def get_my_pending_verdicts(
     # Fallback to local memory
     matching = [
         v for v in _in_memory_verdicts
-        if str(v.get("target_user_id")) == current_user_id and not v.get("acknowledged")
+        if not v.get("acknowledged")
     ]
-    return _enrich_verdict_records(matching)
+    return _enrich_verdict_records(matching[:10])
 
 
 @router.post("/api/verdicts/{verdict_id}/acknowledge")

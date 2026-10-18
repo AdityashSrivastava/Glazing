@@ -217,20 +217,33 @@ _stats_cache_time: float = 0.0
 _cached_stats: Optional[TaskFeedStats] = None
 
 _users_cache_time: float = 0.0
-_cached_user_map: dict[str, str] = {}
+KNOWN_SQUAD_MEMBERS = {
+    "3bc1639a-148d-42c3-9dc2-ba6d84547ba1": "Adityash",
+    "cd06e10c-cb1e-4ac4-a8e4-c1dcca5df973": "Manas",
+    "d97c27ee-0548-4a4f-b485-79f974fb6bd1": "Shivansh",
+    "4b4bb28a-7938-468b-b6dd-e7159c96b515": "Praveen",
+    "18baa0cd-2063-4aca-93f8-73cdf97cdd95": "Harshit"
+}
 
 def get_cached_user_map() -> dict[str, str]:
     global _users_cache_time, _cached_user_map
     now = time.time()
     if now - _users_cache_time < 60.0 and _cached_user_map:
         return _cached_user_map
+    mapping = dict(KNOWN_SQUAD_MEMBERS)
     try:
         users_res = db.table("users").select("id, display_name").execute()
         if users_res.data:
-            _cached_user_map = {str(u["id"]): u.get("display_name", "Operative") for u in users_res.data}
+            for u in users_res.data:
+                name = u.get("display_name")
+                if name and name != "Operative":
+                    mapping[str(u["id"])] = name
+            _cached_user_map = mapping
             _users_cache_time = now
     except Exception:
         pass
+    if not _cached_user_map:
+        _cached_user_map = mapping
     return _cached_user_map
 
 def compute_pulse_stats() -> TaskFeedStats:

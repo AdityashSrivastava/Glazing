@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { apiFetch, getGymStatus, checkinGym, getWeeklyAchievers, resolveWeeklyParty, getVerdictsFeed, type VerdictItem } from '../api';
+import { apiFetch, getGymStatus, checkinGym, getWeeklyAchievers, resolveWeeklyParty, getVerdictsFeed, acknowledgeVerdict, type VerdictItem } from '../api';
 import { renderCompleteModal, openCompleteTaskModal, setupCompleteModalLogic } from './components/complete_modal';
 import { renderWeeklyWinnerModal, setupWeeklyWinnerModalLogic, openWeeklyWinnerModal } from './components/weekly_winner_modal';
 import { renderGymModal, setupGymModalLogic, openGymModal } from './components/gym_modal';
@@ -995,11 +995,14 @@ function renderFilteredTasks(container: HTMLDivElement) {
     return;
   }
 
-  // Render cards (Only show unacknowledged verdicts in public feed)
-  const unackVerdicts = (squadVerdicts || []).filter(v => !v.acknowledged);
-  const verdictsHtml = (unackVerdicts.length > 0) ? `
+  // Render cards (Only show to the verdict operative, for 30 seconds, then remove from activity)
+  const operativeVerdicts = (squadVerdicts || []).filter(v => 
+    !v.acknowledged && 
+    v.target_user_id === currentUserId
+  );
+  const verdictsHtml = (operativeVerdicts.length > 0) ? `
     <div class="space-y-2 mb-4">
-      ${unackVerdicts.slice(0, 3).map(v => {
+      ${operativeVerdicts.slice(0, 1).map(v => {
         const actionLabels: Record<string, string> = {
           'REVOKE_GYM': '🏋️ GYM CHECK-IN REVOKED',
           'REJECT_TASK': '❌ TASK DECLARED FAKE & VOIDED',
@@ -1008,25 +1011,39 @@ function renderFilteredTasks(container: HTMLDivElement) {
         };
         const label = actionLabels[v.action_type] || v.action_type;
         return `
-          <div class="p-3.5 rounded-2xl bg-[#120a0b] border border-rose-500/30 flex items-start gap-3 shadow-lg shadow-black/40 text-left">
-            <div class="w-9 h-9 rounded-xl overflow-hidden border border-rose-500/40 shrink-0 bg-rose-950/20 shadow-inner p-0.5">
-              <img src="/bombastic.png" alt="Mr. Boombastic" class="w-full h-full object-contain filter drop-shadow-[0_1px_4px_rgba(244,63,94,0.3)]" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-mono text-[9px] font-black uppercase tracking-wider text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full">
-                    MISTERBOMBASTIC VERDICT
-                  </span>
-                  <span class="text-xs font-bold text-white font-mono">${escapeHtml(v.target_user_name || 'Operative')}</span>
-                  <span class="text-zinc-600 text-xs">•</span>
-                  <span class="text-xs font-semibold text-rose-300 font-mono">${label}</span>
+          <div id="operative-verdict-banner" data-verdict-id="${escapeHtml(v.id)}" class="p-4 rounded-2xl bg-gradient-to-r from-rose-950/40 via-zinc-950 to-black border border-rose-500/40 relative overflow-hidden text-left shadow-xl shadow-rose-950/20 transition-all duration-500">
+            <!-- Top Ambient Accent Line -->
+            <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-600"></div>
+
+            <div class="flex items-start gap-3.5">
+              <div class="w-10 h-10 rounded-xl overflow-hidden border border-rose-500/40 shrink-0 bg-rose-950/30 p-1 shadow-inner">
+                <img src="/bombastic.png" alt="Mr. Boombastic" class="w-full h-full object-contain filter drop-shadow-[0_2px_6px_rgba(244,63,94,0.4)]" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-mono text-[9px] font-black uppercase tracking-wider text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded-full">
+                      MISTERBOMBASTIC VERDICT
+                    </span>
+                    <span class="text-xs font-bold text-white font-mono">${escapeHtml(v.target_user_name || 'Operative')}</span>
+                    <span class="text-zinc-600 text-xs">•</span>
+                    <span class="text-xs font-semibold text-rose-300 font-mono">${label}</span>
+                  </div>
+                  <span class="font-mono text-xs font-black text-rose-400 shrink-0">${v.points_deducted > 0 ? `-${v.points_deducted} PTS` : 'VOIDED (0 PTS)'}</span>
                 </div>
-                <span class="font-mono text-xs font-black text-rose-400 shrink-0">-${v.points_deducted} PTS</span>
+                <div class="text-xs text-zinc-300 mt-1.5 italic leading-relaxed">
+                  "${escapeHtml(v.reason)}"
+                </div>
+                <div class="mt-2.5 flex items-center justify-between text-[10px] font-mono text-zinc-400">
+                  <span class="text-rose-400 font-semibold">Active Overseer Sanction</span>
+                  <span id="verdict-banner-timer" class="text-zinc-500">Auto-clearing in 30s</span>
+                </div>
               </div>
-              <div class="text-xs text-zinc-300 mt-1 italic leading-relaxed">
-                "${escapeHtml(v.reason)}"
-              </div>
+            </div>
+
+            <!-- Countdown Progress Bar -->
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-black/60">
+              <div id="verdict-banner-progress" class="h-full bg-rose-500 transition-all duration-1000 ease-linear" style="width: 100%;"></div>
             </div>
           </div>
         `;
@@ -1291,6 +1308,49 @@ function renderFilteredTasks(container: HTMLDivElement) {
 
   // Attach card event listeners
   setupCardActionListeners(container);
+  setupVerdictBannerCountdown(container);
+}
+
+let verdictBannerCountdownInterval: any = null;
+
+function setupVerdictBannerCountdown(container: HTMLDivElement) {
+  if (verdictBannerCountdownInterval) {
+    clearInterval(verdictBannerCountdownInterval);
+    verdictBannerCountdownInterval = null;
+  }
+
+  const banner = container.querySelector('#operative-verdict-banner') as HTMLDivElement | null;
+  if (!banner) return;
+
+  const verdictId = banner.getAttribute('data-verdict-id');
+  const timerText = banner.querySelector('#verdict-banner-timer') as HTMLElement | null;
+  const progressBar = banner.querySelector('#verdict-banner-progress') as HTMLElement | null;
+
+  let timeLeft = 30;
+  verdictBannerCountdownInterval = setInterval(() => {
+    timeLeft--;
+    if (timerText) timerText.textContent = `Auto-clearing in ${timeLeft}s`;
+    if (progressBar) progressBar.style.width = `${Math.max(0, (timeLeft / 30) * 100)}%`;
+
+    if (timeLeft <= 0) {
+      clearInterval(verdictBannerCountdownInterval);
+      verdictBannerCountdownInterval = null;
+
+      banner.style.transition = 'all 0.5s ease-out';
+      banner.style.opacity = '0';
+      banner.style.transform = 'translateY(-10px)';
+      banner.style.maxHeight = '0px';
+      banner.style.marginBottom = '0px';
+      banner.style.padding = '0px';
+      setTimeout(() => {
+        banner.remove();
+      }, 500);
+
+      if (verdictId) {
+        acknowledgeVerdict(verdictId).catch(() => {});
+      }
+    }
+  }, 1000);
 }
 
 function setupCardActionListeners(container: HTMLDivElement) {

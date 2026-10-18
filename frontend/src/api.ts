@@ -573,22 +573,36 @@ export async function revertPendingVerdict(taskId: string, reason: string): Prom
   }
 }
 
+export const KNOWN_OPERATIVE_NAMES: Record<string, string> = {
+  '3bc1639a-148d-42c3-9dc2-ba6d84547ba1': 'Adityash',
+  'cd06e10c-cb1e-4ac4-a8e4-c1dcca5df973': 'Manas',
+  'd97c27ee-0548-4a4f-b485-79f974fb6bd1': 'Shivansh',
+  '4b4bb28a-7938-468b-b6dd-e7159c96b515': 'Praveen',
+  '18baa0cd-2063-4aca-93f8-73cdf97cdd95': 'Harshit'
+};
+
 export async function getPendingVerdicts(): Promise<VerdictItem[]> {
   try {
-    return await apiFetch('/verdicts/pending');
+    const list = await apiFetch('/verdicts/pending');
+    return (list || []).map((v: any) => ({
+      ...v,
+      target_user_name: (v.target_user_name && v.target_user_name !== 'Operative')
+        ? v.target_user_name
+        : (KNOWN_OPERATIVE_NAMES[v.target_user_id] || 'Operative')
+    }));
   } catch {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return [];
-      const currentUid = session.user.id;
-      const [{ data: vList }, { data: tasksData }] = await Promise.all([
-        supabase.from('verdicts').select('*').eq('target_user_id', currentUid).eq('acknowledged', false).order('created_at', { ascending: false }),
+      const [{ data: vList }, { data: usersData }, { data: tasksData }] = await Promise.all([
+        supabase.from('verdicts').select('*').eq('acknowledged', false).order('created_at', { ascending: false }).limit(10),
+        supabase.from('users').select('id, display_name'),
         supabase.from('tasks').select('id, title')
       ]);
+      const userMap = new Map((usersData || []).map((u: any) => [u.id, u.display_name]));
       const taskMap = new Map((tasksData || []).map((t: any) => [t.id, t.title]));
       return (vList || []).map((v: any) => ({
         ...v,
-        task_title: taskMap.get(v.task_id) || (v.action_type === 'REVOKE_GYM' ? 'Daily Gym Checkpoint' : 'Directive')
+        target_user_name: userMap.get(v.target_user_id) || KNOWN_OPERATIVE_NAMES[v.target_user_id] || 'Operative',
+        task_title: taskMap.get(v.task_id) || v.old_values?.title || v.new_values?.title || (v.action_type === 'REVOKE_GYM' ? 'Daily Gym Checkpoint' : 'Directive')
       })) as VerdictItem[];
     } catch {
       return [];
@@ -608,7 +622,13 @@ export async function acknowledgeVerdict(verdictId: string): Promise<void> {
 
 export async function getVerdictsFeed(): Promise<VerdictItem[]> {
   try {
-    return await apiFetch('/verdicts/feed');
+    const list = await apiFetch('/verdicts/feed');
+    return (list || []).map((v: any) => ({
+      ...v,
+      target_user_name: (v.target_user_name && v.target_user_name !== 'Operative')
+        ? v.target_user_name
+        : (KNOWN_OPERATIVE_NAMES[v.target_user_id] || 'Operative')
+    }));
   } catch {
     try {
       const [{ data: vList }, { data: usersData }, { data: tasksData }] = await Promise.all([
@@ -620,8 +640,8 @@ export async function getVerdictsFeed(): Promise<VerdictItem[]> {
       const taskMap = new Map((tasksData || []).map((t: any) => [t.id, t.title]));
       return (vList || []).map((v: any) => ({
         ...v,
-        target_user_name: userMap.get(v.target_user_id) || 'Operative',
-        task_title: taskMap.get(v.task_id) || (v.action_type === 'REVOKE_GYM' ? 'Daily Gym Checkpoint' : 'Directive')
+        target_user_name: userMap.get(v.target_user_id) || KNOWN_OPERATIVE_NAMES[v.target_user_id] || 'Operative',
+        task_title: taskMap.get(v.task_id) || v.old_values?.title || v.new_values?.title || (v.action_type === 'REVOKE_GYM' ? 'Daily Gym Checkpoint' : 'Directive')
       })) as VerdictItem[];
     } catch {
       return [];
