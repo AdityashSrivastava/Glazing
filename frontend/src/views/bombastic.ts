@@ -162,24 +162,28 @@ export function renderBombastic(): string {
       </main>
 
       <!-- Audit Verdict Action Modal -->
-      <div id="audit-action-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-        <div class="theme-card max-w-[500px] w-full p-6 space-y-5 bg-[#0f0d0c] border border-rose-500/30 rounded-2xl shadow-2xl relative text-left">
-          
-          <div class="flex items-center justify-between border-b border-white/10 pb-3">
-            <div class="flex items-center gap-2">
-              <span class="text-lg">⚖️</span>
-              <h3 class="text-base font-bold text-white font-mono uppercase">Issue Overseer Verdict</h3>
+      <div id="audit-action-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="w-full max-w-lg bg-[#0e0a0b] border border-rose-500/30 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(244,63,94,0.12)] space-y-5 text-left relative overflow-hidden">
+          <div class="absolute -top-24 -right-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center text-lg font-bold">⚖️</div>
+              <div>
+                <div class="text-[10px] font-mono uppercase tracking-wider text-rose-400 font-bold">One Above All Authority</div>
+                <h3 class="text-base font-bold text-white font-mono uppercase tracking-tight">Issue Overseer Verdict</h3>
+              </div>
             </div>
-            <button type="button" id="close-audit-modal-btn" class="text-zinc-400 hover:text-white p-1 rounded-lg">✕</button>
+            <button type="button" id="close-audit-modal-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer">✕</button>
           </div>
 
           <!-- Target Info -->
-          <div class="p-3 rounded-xl bg-black/60 border border-white/5 text-xs font-mono space-y-1">
-            <div class="text-zinc-400 flex justify-between">
-              <span>TARGET OPERATIVE:</span>
-              <span class="text-rose-400 font-bold" id="audit-target-name">...</span>
+          <div class="p-3.5 rounded-2xl bg-black/70 border border-white/10 text-xs font-mono space-y-1.5">
+            <div class="text-zinc-400 flex justify-between items-center">
+              <span class="text-[11px] uppercase tracking-wider text-zinc-500">Target Operative</span>
+              <span class="text-rose-400 font-bold font-mono px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20" id="audit-target-name">...</span>
             </div>
-            <div class="text-zinc-200 truncate" id="audit-target-task">...</div>
+            <div class="text-zinc-200 text-xs truncate font-medium pt-0.5" id="audit-target-task">...</div>
           </div>
 
           <form id="audit-verdict-form" class="space-y-4">
@@ -188,7 +192,7 @@ export function renderBombastic(): string {
 
             <div>
               <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">Verdict Action</label>
-              <select id="audit-action-type" class="theme-input font-mono text-xs w-full h-9 px-3 bg-black border border-white/10 text-white rounded-xl">
+              <select id="audit-action-type" class="w-full bg-[#140e10] border border-white/10 focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30 text-white font-mono text-xs rounded-xl px-3.5 py-2.5 outline-none transition-all cursor-pointer">
                 <option value="REJECT_TASK">❌ Void Task & Deduct All Points (Fake Task)</option>
                 <option value="REWRITE_TASK">✍️ Rewrite Title & Dock Actual Hours</option>
                 <option value="REVERT_PENDING">🔄 Revert Completed Task Back to Pending</option>
@@ -197,14 +201,14 @@ export function renderBombastic(): string {
             </div>
 
             <!-- Rewrite Fields (shown only for REWRITE_TASK) -->
-            <div id="rewrite-fields" class="space-y-3 hidden">
+            <div id="rewrite-fields" class="space-y-3 hidden p-3 rounded-2xl bg-white/[0.02] border border-white/5">
               <div>
                 <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1">New Audited Title</label>
-                <input type="text" id="audit-new-title" class="theme-input text-xs w-full h-9 px-3 bg-black border border-white/10 text-white rounded-xl" placeholder="Audited task title..." />
+                <input type="text" id="audit-new-title" class="w-full bg-[#140e10] border border-white/10 text-white font-mono text-xs rounded-xl px-3 py-2 outline-none" placeholder="Audited task title..." />
               </div>
               <div>
                 <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1">Adjusted Actual Hours</label>
-                <input type="number" step="0.25" min="0.1" max="12" id="audit-new-hours" class="theme-input text-xs w-full h-9 px-3 bg-black border border-white/10 text-white rounded-xl" placeholder="1.0" />
+                <input type="number" step="0.25" min="0.1" max="12" id="audit-new-hours" class="w-full bg-[#140e10] border border-white/10 text-white font-mono text-xs rounded-xl px-3 py-2 outline-none" placeholder="1.0" />
               </div>
             </div>
 
@@ -214,25 +218,31 @@ export function renderBombastic(): string {
                 id="audit-reason"
                 required
                 rows="3"
-                class="theme-input font-sans text-xs w-full p-3 bg-black border border-white/10 text-white rounded-xl leading-relaxed"
-                placeholder="Explain the verdict reason (will be displayed on operative popup & squad feed)..."
+                class="w-full bg-[#140e10] border border-white/10 focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30 text-white font-sans text-xs rounded-xl p-3 outline-none transition-all placeholder:text-zinc-600 leading-relaxed resize-none"
+                placeholder="Explain the verdict reason (displayed on operative popup & squad activity feed)..."
               ></textarea>
+              <div class="flex flex-wrap gap-1.5 pt-1.5">
+                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer" data-reason="Fabricated / fraudulent task proof">❌ Fake proof</button>
+                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer" data-reason="Actual hours severely exaggerated beyond scope">✍️ Exaggerated hours</button>
+                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer" data-reason="Incomplete deliverable, reverted for genuine redo">🔄 Redo required</button>
+                <button type="button" class="quick-audit-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/30 text-[10px] font-mono text-zinc-400 hover:text-rose-300 transition-all cursor-pointer" data-reason="Disqualified under squad discipline protocol">⚖️ Protocol breach</button>
+              </div>
             </div>
 
-            <div class="flex items-center justify-end gap-2 pt-2">
+            <div class="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 id="cancel-audit-btn"
-                class="px-4 py-2 text-xs font-mono text-zinc-400 hover:text-white border border-white/10 rounded-xl"
+                class="px-4 py-2 text-xs font-mono font-medium text-zinc-400 hover:text-white border border-white/10 hover:bg-white/5 rounded-xl transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 id="submit-verdict-btn"
-                class="px-4 py-2 text-xs font-mono font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-xl transition-all cursor-pointer shadow-lg shadow-rose-950/40"
+                class="px-5 py-2 text-xs font-mono font-bold text-white bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 rounded-xl transition-all cursor-pointer shadow-lg shadow-rose-950/50 flex items-center gap-1.5"
               >
-                Execute Verdict
+                <span>Execute Verdict</span>
               </button>
             </div>
           </form>
@@ -241,20 +251,25 @@ export function renderBombastic(): string {
       </div>
 
       <!-- Quick Gym Revoke Modal -->
-      <div id="quick-gym-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-        <div class="theme-card max-w-[440px] w-full p-6 space-y-4 bg-[#0f0d0c] border border-amber-500/30 rounded-2xl shadow-2xl relative text-left">
-          <div class="flex items-center justify-between border-b border-white/10 pb-3">
-            <div class="flex items-center gap-2">
-              <span class="text-lg">🏋️</span>
-              <h3 class="text-base font-bold text-amber-400 font-mono uppercase">Revoke Gym Check-in</h3>
+      <div id="quick-gym-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-[#0e0a0b] border border-amber-500/30 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(245,158,11,0.12)] space-y-5 text-left relative overflow-hidden">
+          <div class="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-lg font-bold">🏋️</div>
+              <div>
+                <div class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">Authoritative Sanction</div>
+                <h3 class="text-base font-bold text-white font-mono uppercase tracking-tight">Revoke Gym Check-in</h3>
+              </div>
             </div>
-            <button type="button" id="close-quick-gym-btn" class="text-zinc-400 hover:text-white p-1">✕</button>
+            <button type="button" id="close-quick-gym-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer">✕</button>
           </div>
 
           <form id="quick-gym-form" class="space-y-4">
             <div>
-              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1">Select Operative</label>
-              <select id="quick-gym-user-select" class="theme-input font-mono text-xs w-full h-9 px-3 bg-black border border-white/10 text-white rounded-xl">
+              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">Target Operative</label>
+              <select id="quick-gym-user-select" class="w-full bg-[#140e10] border border-white/10 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 text-white font-mono text-xs rounded-xl px-3.5 py-2.5 outline-none transition-all cursor-pointer">
                 <option value="3bc1639a-148d-42c3-9dc2-ba6d84547ba1">Adityash (adityash@glazing.com)</option>
                 <option value="cd06e10c-cb1e-4ac4-a8e4-c1dcca5df973">Manas (manas@glazing.com)</option>
                 <option value="d97c27ee-0548-4a4f-b485-79f974fb6bd1">Shivansh (shivansh@glazing.com)</option>
@@ -264,13 +279,19 @@ export function renderBombastic(): string {
             </div>
 
             <div>
-              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1">Reason for Revocation</label>
-              <textarea id="quick-gym-reason" required rows="2" class="theme-input text-xs w-full p-2.5 bg-black border border-white/10 text-white rounded-xl" placeholder="e.g. Did not attend gym today, selfie was from yesterday"></textarea>
+              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">Reason for Revocation</label>
+              <textarea id="quick-gym-reason" required rows="2" class="w-full bg-[#140e10] border border-white/10 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 text-white font-sans text-xs rounded-xl p-3 outline-none transition-all placeholder:text-zinc-600 leading-relaxed resize-none" placeholder="e.g. Did not attend gym today, selfie was from yesterday"></textarea>
+              <div class="flex flex-wrap gap-1.5 pt-1.5">
+                <button type="button" class="quick-gym-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-amber-500/15 border border-white/5 hover:border-amber-500/30 text-[10px] font-mono text-zinc-400 hover:text-amber-300 transition-all cursor-pointer" data-reason="Did not attend gym today">❌ Did not attend</button>
+                <button type="button" class="quick-gym-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-amber-500/15 border border-white/5 hover:border-amber-500/30 text-[10px] font-mono text-zinc-400 hover:text-amber-300 transition-all cursor-pointer" data-reason="Fake or recycled selfie proof uploaded">📸 Fake proof</button>
+                <button type="button" class="quick-gym-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-amber-500/15 border border-white/5 hover:border-amber-500/30 text-[10px] font-mono text-zinc-400 hover:text-amber-300 transition-all cursor-pointer" data-reason="Checked in without genuine workout">🚫 Zero workout</button>
+                <button type="button" class="quick-gym-chip px-2.5 py-1 rounded-lg bg-white/5 hover:bg-amber-500/15 border border-white/5 hover:border-amber-500/30 text-[10px] font-mono text-zinc-400 hover:text-amber-300 transition-all cursor-pointer" data-reason="Retroactive or fraudulent timestamp">⏰ False timestamp</button>
+              </div>
             </div>
 
-            <div class="flex justify-end gap-2 pt-2">
-              <button type="button" id="cancel-quick-gym-btn" class="px-3 py-1.5 text-xs font-mono text-zinc-400 border border-white/10 rounded-xl">Cancel</button>
-              <button type="submit" id="submit-quick-gym-btn" class="btn-primary text-xs font-mono font-bold px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500">Revoke (-5 pts)</button>
+            <div class="flex justify-end gap-2.5 pt-2">
+              <button type="button" id="cancel-quick-gym-btn" class="px-4 py-2 text-xs font-mono font-medium text-zinc-400 hover:text-white border border-white/10 hover:bg-white/5 rounded-xl transition-all cursor-pointer">Cancel</button>
+              <button type="submit" id="submit-quick-gym-btn" class="px-5 py-2 text-xs font-mono font-bold text-white bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 shadow-lg shadow-amber-950/50 rounded-xl transition-all cursor-pointer flex items-center gap-1.5">Revoke (-5 pts)</button>
             </div>
           </form>
         </div>
@@ -766,7 +787,28 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
       if (changed) renderPresenceGrid(squadOperatives);
     }
   };
-  window.addEventListener('presence-sync', handlePresenceSync);
+  // Quick reason chips click logic
+  document.querySelectorAll('.quick-audit-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const reasonText = chip.getAttribute('data-reason') || '';
+      const reasonInput = document.getElementById('audit-reason') as HTMLTextAreaElement;
+      if (reasonInput) {
+        reasonInput.value = reasonText;
+        reasonInput.focus();
+      }
+    });
+  });
+
+  document.querySelectorAll('.quick-gym-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const reasonText = chip.getAttribute('data-reason') || '';
+      const reasonInput = document.getElementById('quick-gym-reason') as HTMLTextAreaElement;
+      if (reasonInput) {
+        reasonInput.value = reasonText;
+        reasonInput.focus();
+      }
+    });
+  });
 
   // Trigger initial telemetry sync immediately on cockpit mount
   loadAllOverseerTelemetry();

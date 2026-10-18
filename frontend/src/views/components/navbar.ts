@@ -180,26 +180,41 @@ export function showNotification(message: string, type: 'success' | 'error' = 's
   if (!toastContainer) {
     toastContainer = document.createElement('div');
     toastContainer.id = 'global-toast-container';
-    toastContainer.className = 'fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none';
+    toastContainer.className = 'fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-md w-full pointer-events-none px-4 sm:px-0';
     document.body.appendChild(toastContainer);
   }
 
   const toast = document.createElement('div');
-  const bg = type === 'success' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-rose-600 text-white border-rose-500';
-  toast.className = `p-3 px-4 rounded-xl shadow-xl font-mono text-xs flex items-center gap-2 transform translate-y-3 opacity-0 transition-all duration-300 pointer-events-auto border ${bg}`;
-  const span = document.createElement('span');
-  span.textContent = message;
-  toast.appendChild(span);
+  const isSuccess = type === 'success';
+  const bg = isSuccess
+    ? 'bg-[#0a1410]/95 border-emerald-500/40 text-emerald-200 shadow-[0_10px_35px_rgba(16,185,129,0.15)]'
+    : 'bg-[#150a0d]/95 border-rose-500/40 text-rose-200 shadow-[0_10px_35px_rgba(244,63,94,0.18)]';
+  const icon = isSuccess ? '✓' : '⚠️';
+  const iconBg = isSuccess ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+
+  toast.className = `p-3.5 px-4 rounded-2xl backdrop-blur-xl font-mono text-xs flex items-start gap-3 transform translate-y-3 opacity-0 transition-all duration-300 pointer-events-auto border ${bg}`;
+  toast.innerHTML = `
+    <div class="w-6 h-6 rounded-lg ${iconBg} flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+      ${icon}
+    </div>
+    <div class="flex-1 min-w-0 text-xs leading-relaxed font-medium">
+      ${escapeHtml(message)}
+    </div>
+    <button type="button" class="text-zinc-500 hover:text-white p-0.5 shrink-0 transition-colors" onclick="this.parentElement.remove()">✕</button>
+  `;
+
   toastContainer.appendChild(toast);
 
   requestAnimationFrame(() => {
     toast.classList.remove('translate-y-3', 'opacity-0');
   });
 
-  setTimeout(() => {
+  const timer = setTimeout(() => {
     toast.classList.add('translate-y-3', 'opacity-0');
     setTimeout(() => toast.remove(), 300);
-  }, 3500);
+  }, 5000);
+
+  toast.addEventListener('mouseenter', () => clearTimeout(timer));
 }
 
 export function setupNavbarLogic(navigateFn: (route: string) => void) {

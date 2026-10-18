@@ -201,44 +201,139 @@ export async function sendHeartbeat(currentRoute: string): Promise<void> {
 }
 
 export async function getSquadPresence(): Promise<OperativePresenceItem[]> {
-  return apiFetch('/admin/presence');
+  try {
+    return await apiFetch('/admin/presence');
+  } catch (err: any) {
+    console.warn("Backend /admin/presence unavailable, falling back to direct Supabase read:", err);
+    try {
+      const [{ data: presenceData }, { data: usersData }] = await Promise.all([
+        supabase.from('operative_presence').select('*'),
+        supabase.from('users').select('id, display_name')
+      ]);
+
+      if (usersData && usersData.length > 0) {
+        const pMap = new Map((presenceData || []).map((p: any) => [p.user_id, p]));
+        const now = Date.now();
+        return usersData.map((u: any) => {
+          const p = pMap.get(u.id);
+          const lastHb = p?.last_heartbeat ? new Date(p.last_heartbeat).getTime() : 0;
+          const diffSec = lastHb > 0 ? (now - lastHb) / 1000 : 999999;
+          const isOnline = diffSec <= 65;
+          return {
+            user_id: u.id,
+            display_name: u.display_name,
+            email: `${u.display_name.toLowerCase()}@glazing.com`,
+            is_online: isOnline,
+            current_route: p?.current_route || 'dashboard',
+            last_heartbeat: p?.last_heartbeat || null,
+            last_seen_relative: isOnline ? 'Online now' : (lastHb > 0 ? `${Math.floor(diffSec / 60)}m ago` : 'Offline'),
+            active_task_title: null,
+            active_timer_mode: null,
+            status_label: isOnline ? 'ACTIVE' : 'OFFLINE'
+          };
+        });
+      }
+    } catch (e) {
+      console.error("Direct Supabase presence fallback failed:", e);
+    }
+    throw err;
+  }
 }
 
 export async function getUnmaskedTasks(): Promise<any[]> {
-  return apiFetch('/admin/tasks');
+  try {
+    return await apiFetch('/admin/tasks');
+  } catch (err: any) {
+    console.warn("Backend /admin/tasks unavailable, falling back to direct Supabase read:", err);
+    try {
+      const [{ data: tasksData }, { data: usersData }, { data: goalsData }] = await Promise.all([
+        supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase.from('users').select('id, display_name'),
+        supabase.from('goals').select('id, title, category')
+      ]);
+
+      if (tasksData) {
+        const userMap = new Map((usersData || []).map((u: any) => [u.id, u.display_name]));
+        const goalMap = new Map((goalsData || []).map((g: any) => [g.id, g]));
+
+        return tasksData.map((t: any) => {
+          const goal = t.goal_id ? goalMap.get(t.goal_id) : null;
+          return {
+            ...t,
+            user_name: userMap.get(t.user_id) || 'Operative',
+            goal_title: goal?.title || null,
+            category: goal?.category || 'General',
+            is_proof_verified: Boolean(t.proof_url),
+            proof_feedback: t.proof_url ? 'Proof uploaded' : null
+          };
+        });
+      }
+    } catch (e) {
+      console.error("Direct Supabase tasks fallback failed:", e);
+    }
+    throw err;
+  }
 }
 
 export async function revokeGymVerdict(targetUserId: string, reason: string): Promise<VerdictItem> {
-  return apiFetch('/admin/verdict/revoke-gym', {
-    method: 'POST',
-    body: JSON.stringify({ target_user_id: targetUserId, reason })
-  });
+  try {
+    return await apiFetch('/admin/verdict/revoke-gym', {
+      method: 'POST',
+      body: JSON.stringify({ target_user_id: targetUserId, reason })
+    });
+  } catch (err: any) {
+    if (err.message && (err.message.includes('404') || err.message.includes('Not Found'))) {
+      throw new Error("Render backend deploy pending: Please click 'Deploy latest commit' in your Render dashboard so overseer endpoints can process point deductions.");
+    }
+    throw err;
+  }
 }
 
 export async function rejectTaskVerdict(taskId: string, reason: string): Promise<VerdictItem> {
-  return apiFetch('/admin/verdict/reject-task', {
-    method: 'POST',
-    body: JSON.stringify({ task_id: taskId, reason })
-  });
+  try {
+    return await apiFetch('/admin/verdict/reject-task', {
+      method: 'POST',
+      body: JSON.stringify({ task_id: taskId, reason })
+    });
+  } catch (err: any) {
+    if (err.message && (err.message.includes('404') || err.message.includes('Not Found'))) {
+      throw new Error("Render backend deploy pending: Please click 'Deploy latest commit' in your Render dashboard so overseer endpoints can process task voids.");
+    }
+    throw err;
+  }
 }
 
 export async function rewriteTaskVerdict(taskId: string, newTitle: string, newActualHours: number, reason: string): Promise<VerdictItem> {
-  return apiFetch('/admin/verdict/rewrite-task', {
-    method: 'POST',
-    body: JSON.stringify({
-      task_id: taskId,
-      new_title: newTitle,
-      new_actual_hours: newActualHours,
-      reason
-    })
-  });
+  try {
+    return await apiFetch('/admin/verdict/rewrite-task', {
+      method: 'POST',
+      body: JSON.stringify({
+        task_id: taskId,
+        new_title: newTitle,
+        new_actual_hours: newActualHours,
+        reason
+      })
+    });
+  } catch (err: any) {
+    if (err.message && (err.message.includes('404') || err.message.includes('Not Found'))) {
+      throw new Error("Render backend deploy pending: Please click 'Deploy latest commit' in your Render dashboard so overseer endpoints can rewrite tasks.");
+    }
+    throw err;
+  }
 }
 
 export async function revertPendingVerdict(taskId: string, reason: string): Promise<VerdictItem> {
-  return apiFetch('/admin/verdict/revert-pending', {
-    method: 'POST',
-    body: JSON.stringify({ task_id: taskId, reason })
-  });
+  try {
+    return await apiFetch('/admin/verdict/revert-pending', {
+      method: 'POST',
+      body: JSON.stringify({ task_id: taskId, reason })
+    });
+  } catch (err: any) {
+    if (err.message && (err.message.includes('404') || err.message.includes('Not Found'))) {
+      throw new Error("Render backend deploy pending: Please click 'Deploy latest commit' in your Render dashboard so overseer endpoints can revert tasks.");
+    }
+    throw err;
+  }
 }
 
 export async function getPendingVerdicts(): Promise<VerdictItem[]> {
