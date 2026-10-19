@@ -1,57 +1,188 @@
 # ⚡ Glazing
 
-**Glazing** is a competitive, gamified accountability and productivity matrix designed for high-performing squads. It turns daily execution into a competitive sport using transparent telemetry, verifiable proof of work, peer pressure, and authoritative squad discipline.
+**Glazing** is a competitive, gamified accountability and productivity matrix engineered for high-performing squads. It turns daily execution into a transparent competitive sport using verifiable proof of work, peer-to-peer staking, live operative telemetry, and authoritative squad discipline.
 
 ---
 
-### 🚀 Key Features
+## 🚀 Core Systems & Features
 
-- **5-Domain Competency Matrix:** Tracks progress across **DSA**, **Development**, **College Studies**, **Gym**, and **Life** with interactive Skill Matrix Radar charts.
-- **Precision Scoring Engine:** Domain-weighted points for hours logged (DSA 15 pts/hr, Dev 12.5 pts/hr, College 10 pts/hr, Life 5 pts/hr), completion bonuses, and accuracy rewards for matching estimated time.
-- **P2P Staking & Bounties:** Stake earned points to challenge peers on critical deliverables before midnight IST.
-- **Live Focus Telemetry:** Real-time squad activity feed with deep-focus status indicators and heartbeat presence tracking.
-- **Classified Directives:** Privacy toggle to mask sensitive task titles in public feeds while keeping leaderboard verification intact.
-- **Midnight IST Leaderboards:** Automated daily and weekly rankings with historical snapshot preservation and penalty tracking for the bottom ranks.
+### 1. 5-Domain Competency Matrix
+Operatives balance execution across five core domains, visualized through interactive Skill Matrix Radar charts:
+- **DSA (Data Structures & Algorithms):** Highest intensity domain ($15\text{ pts/hr}$).
+- **Development:** Software engineering, full-stack, and infrastructure ($12.5\text{ pts/hr}$).
+- **College Studies / Academics:** Coursework and academic requirements ($10\text{ pts/hr}$).
+- **Gym & Physical Conditioning:** Daily health habit with streak multipliers ($5\text{ pts}$ check-in bonus).
+- **Life & Personal Execution:** General operational commitments ($5\text{ pts/hr}$).
+
+### 2. Precision Scoring & Verification Engine
+- **Base Points:** Weighted domain rates multiplied by actual hours logged.
+- **Proof-of-Work Verification:** Automated heuristic proof inspector verifying GitHub pull requests, LeetCode submissions, and photo uploads.
+- **Accuracy Incentives:** Additional points awarded for accurate estimation vs. actual completion time.
+- **Midnight IST Reset:** Daily leaderboards capture historical snapshots at 23:59:59 IST.
+
+### 3. P2P Bounties & Peer Staking
+- Operatives can stake earned points from their personal vault to challenge squad peers on specific high-stakes directives.
+- If the target operative completes the directive with valid proof before midnight IST, they win the staked bounty; otherwise, the bounty is returned or redistributed.
+
+### 4. Daily Gym Checkpoint & Physical Streak Engine
+- Dedicated daily gym check-in modal requiring authentic visual proof.
+- Rewards an immediate $+5\text{ PTS}$ vault credit with an escalating daily streak tracker.
+
+### 5. Weekly Paneer Patties Party Mandate
+- At the conclusion of every weekly sprint (Sunday midnight IST), Glazing identifies the **Weekly Champion** (Rank 1).
+- By sovereign squad law, the bottom two performers (**Rank 4 and Rank 5**) are mandated to sponsor a *Paneer Patties Party* for the champion.
+
+### 6. Live Focus Telemetry & Presence Tracking
+- Real-time squad activity feed with deep-focus badges.
+- Bi-directional heartbeat monitoring displaying live route presence and active status.
+
+### 7. Classified Directives
+- Privacy toggle allowing operatives to encrypt sensitive task titles in public feeds while preserving underlying leaderboard score verification.
 
 ---
 
-### ⚖️ Misterbombastic: The Covert Overseer
+## ⚖️ Misterbombastic: Covert Overseer & Discipline Protocol
 
 > *Mr. Boombastic is the supreme, covert overseer of Glazing who surveils operative activity from the shadows to ensure uncompromising squad integrity.*  
 > *He wields irrevocable judicial authority to audit unmasked directives, dock fraudulent hours, and issue public disciplinary sanctions when standards are breached.*
 
-#### Overseer Capabilities & Sanctions:
-1. **Unmasked Surveillance:** Access to all squad directives (unmasking even classified data) and real-time operative heartbeat indicators.
+```
+                ┌───────────────────────────────────────┐
+                │        MISTERBOMBASTIC COCKPIT        │
+                │        [ Covert Route: #/bombastic ]   │
+                └──────────────────┬────────────────────┘
+                                   │
+              ┌────────────────────┼────────────────────┐
+              ▼                    ▼                    ▼
+     [Unmasked Telemetry]  [Heartbeat Presence]  [Judicial Sanctions]
+              │                    │                    │
+              └────────────────────┼────────────────────┘
+                                   │
+                                   ▼
+             ┌──────────────────────────────────────────────┐
+             │         Dual-Engine Execution & Fallback      │
+             │   (FastAPI Backend ──► Direct Supabase RLS)   │
+             └─────────────────────┬────────────────────────┘
+                                   │
+                                   ▼
+             ┌──────────────────────────────────────────────┐
+             │    Realtime Broadcast (squad-verdicts)       │
+             │  • Squad-Wide Ambient Disciplinary Popup     │
+             │  • 30s Countdown Auto-Clearing Feed Banner   │
+             └──────────────────────────────────────────────┘
+```
+
+### Overseer Capabilities:
+1. **Unmasked Surveillance:** Unrestricted covert audit access. Classified tasks and hidden proof links are fully unmasked for the Overseer.
 2. **Authoritative Judicial Sanctions:**
-   - **Void Task & Void Points (`REJECT_TASK`):** Disqualifies fabricated tasks and docks all points earned.
-   - **Audit Title & Dock Hours (`REWRITE_TASK`):** Re-calibrates exaggerated work logs and docks point deltas.
-   - **Forced Revert to Pending (`REVERT_PENDING`):** Strips completion credit for substandard work and forces redos.
-   - **Revoke Gym Check-in (`REVOKE_GYM`):** Docks daily gym points (-5 pts) for false or recycled workout proofs.
-3. **Squad-Wide Realtime Broadcast:** Broadcasts judgments via the `squad-verdicts` channel to all active operatives with transparent badge icons and 30-second self-clearing accountability feeds.
+   - **Void Task & Strip Points (`REJECT_TASK`):** Disqualifies fraudulent tasks and deducts all points earned.
+   - **Audit Title & Dock Hours (`REWRITE_TASK`):** Recalibrates exaggerated hours and immediately docks point deltas.
+   - **Forced Revert to Pending (`REVERT_PENDING`):** Strips completion credit for substandard work and forces genuine re-dos.
+   - **Revoke Gym Check-in (`REVOKE_GYM`):** Docks daily gym points ($-5\text{ PTS}$) for recycled or false workout selfies.
+3. **Impeccable Disciplinary Modal:**
+   - Broadcasts live to connected operatives via Supabase Realtime channel `squad-verdicts`.
+   - Displays the **Penalized Operative**, sanction badge, exact deducted points, and the Overseer's written rationale.
+   - Equipped with an ambient rose aura spotlight, floating particle physics, and a **30-second auto-acknowledgment countdown**.
+4. **Target-Exclusive Activity Feed Self-Clear:**
+   - Disciplinary cards in the squad activity feed appear exclusively for the penalized operative and automatically clear from the feed after 30 seconds.
 
 ---
 
-### 🛠️ Tech Stack
+## ⚙️ Architectural Highlights & Resilience
 
-- **Frontend:** TypeScript, Vite, Modern CSS / Tailwind tokens, Chart.js
-- **Backend:** Python 3.11+, FastAPI, Uvicorn, Pydantic v2
-- **Database & Auth:** Supabase (PostgreSQL with Row-Level Security, Realtime Channels)
-- **Deployment & Hosting:** Vercel (Frontend), Render (Backend)
+### 1. Dual-Engine Failover Architecture
+- All critical mutations (verdicts, gym check-ins, task completions) utilize a primary FastAPI backend route with an automatic direct Supabase PostgreSQL client fallback.
+- If the backend is cold-starting or updating, operations execute directly against Supabase RLS without user-facing errors.
+
+### 2. Render Keepalive Protocol
+To eliminate cold-start delays on free-tier infrastructure:
+1. **Dedicated Zero-Overhead Health Endpoint (`/health` & `/api/health`):** Returns an immediate `200 OK` (`{"status": "online"}`) without touching database connections.
+2. **Automated External Cron Monitor:** Configured via [cron-job.org](https://cron-job.org) to ping `/health` every 10 minutes (`*/10 * * * *`), keeping Uvicorn and FastAPI warm 24/7.
+3. **Client-Side Non-Blocking Warmup:** On initial bundle load, the client executes a background `warmupBackend()` with `keepalive: true`.
 
 ---
 
-### ⚡ Live Telemetry & Low-Latency Architecture (Render Keepalive)
+## 🛠️ Tech Stack
 
-To prevent cold-start delays on Render's free tier (which spins down web services after 15 minutes of inactivity, causing 50–90 second latency spikes on live squad telemetry), a multi-layer keepalive strategy was implemented:
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | TypeScript, Vite, Tailwind CSS v4 / PostCSS, Chart.js |
+| **Backend** | Python 3.11+, FastAPI, Uvicorn, Pydantic v2 |
+| **Database & Auth** | Supabase PostgreSQL, GoTrue Auth, Row-Level Security (RLS) |
+| **Realtime** | Supabase Realtime Broadcast & Presence Channels |
+| **Hosting & CI/CD** | Vercel (Frontend), Render (Backend), GitHub Actions |
 
-1. **Dedicated Zero-Overhead Health Route (`/health` & `/api/health`):**
-   - FastAPI exposes lightweight health endpoints in [`backend/app/main.py`](backend/app/main.py) that return an immediate `200 OK` (`{"status": "online"}`) without touching database connections or executing ORM queries.
+---
 
-2. **Automated External Cron Monitor:**
-   - Configured an external keepalive cronjob via [cron-job.org](https://cron-job.org) pinging `https://glazing.onrender.com/health` every **10 minutes** (`*/10 * * * *`).
-   - This ensures the 15-minute inactivity idle window is never reached, keeping Uvicorn and FastAPI warm 24/7 with instant (~50–100ms) telemetry responses.
-   - Operates fully within Render's free quota (750 free instance hours per month vs. 744 hours in a 31-day month).
+## 💻 Local Development Setup
 
-3. **Client-Side Non-Blocking Warmup & Dual-Engine Failover:**
-   - On initial bundle load, the client executes a background `warmupBackend()` call with `keepalive: true` to verify connectivity without blocking UI hydration or cached feed rendering.
-   - If the backend is updating or deploying, all critical mutations (task completion, gym check-ins, and overseer sanctions) seamlessly execute direct Supabase PostgreSQL fallbacks with zero user downtime.
+### Prerequisites
+- **Node.js:** v18.0.0 or higher
+- **Python:** v3.11 or higher
+- **Supabase Account:** Project URL and public anon key
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/AdityashSrivastava/Glazing.git
+cd Glazing
+```
+
+### 2. Backend Setup
+```bash
+cd backend
+python -m venv venv
+
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+Create a `.env` file in `backend/`:
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-supabase-service-or-anon-key
+ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+Run the backend server:
+```bash
+uvicorn app.main:app --port 8000 --reload
+```
+API runs at **http://localhost:8000** (Health check: **http://localhost:8000/health**).
+
+### 3. Frontend Setup
+```bash
+cd ../frontend
+npm install
+```
+
+Create a `.env` file in `frontend/`:
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_API_URL=http://localhost:8000/api
+```
+
+Start the Vite development server:
+```bash
+npm run dev
+```
+Client runs at **http://localhost:5173**.
+
+---
+
+## 🗄️ Database Schema Overview
+
+The database is built on Supabase PostgreSQL with strict Row-Level Security:
+
+- `public.users`: Operative profiles, lifetime points, current streaks.
+- `public.goals`: High-level domain objectives.
+- `public.tasks`: Daily execution directives, proof URLs, points earned, status.
+- `public.bounties`: Peer-to-peer staked point challenges.
+- `public.operative_presence`: Realtime heartbeat and route telemetry.
+- `public.verdicts`: Overseer audit judgments, points docked, and acknowledgment states.
+
+*Full database migration script is maintained in [`project_files/supabase_setup.sql`](project_files/supabase_setup.sql).*
