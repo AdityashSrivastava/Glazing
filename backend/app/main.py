@@ -75,16 +75,21 @@ async def add_security_headers(request: Request, call_next):
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     traceback.print_exc()
-    origin = request.headers.get("origin") or "*"
+    req_origin = request.headers.get("origin", "")
+    # Strict defense: Only reflect whitelisted CORS origins, never wildcard with credentials
+    cors_origin = req_origin if req_origin in allowed_origins else (allowed_origins[0] if allowed_origins else "")
+    headers = {
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Methods": "*"
+    }
+    if cors_origin:
+        headers["Access-Control-Allow-Origin"] = cors_origin
+
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal server error: {str(exc)}"},
-        headers={
-            "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Credentials": "true",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Allow-Methods": "*"
-        }
+        content={"detail": "An internal server error occurred. Telemetry logged."},
+        headers=headers
     )
 
 @app.get("/")
@@ -93,5 +98,3 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.get("/api/health")
 def health_check():
     return {"status": "online", "message": "Glazing API is running."}
-
-

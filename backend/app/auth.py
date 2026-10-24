@@ -14,8 +14,11 @@ SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 _verified_users: set[str] = set()
-# Fast token validation cache: token -> (user_id, expires_at_epoch)
-_token_cache: dict[str, tuple[str, float]] = {}
+from collections import OrderedDict
+
+# Fast bounded token validation cache: token -> (user_id, expires_at_epoch) with LRU eviction
+_token_cache: OrderedDict[str, tuple[str, float]] = OrderedDict()
+MAX_TOKEN_CACHE_ENTRIES = 2000
 
 def ensure_user_record(user_id: str, email: str | None = None, display_name_hint: str | None = None):
     if user_id in _verified_users:
@@ -46,6 +49,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     if cached:
         cached_user_id, cached_exp = cached
         if cached_exp > now:
+            _token_cache.move_to_end(token)
             return cached_user_id
         else:
             _token_cache.pop(token, None)
@@ -61,6 +65,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
                     ttl = min(ttl, exp_ts - now)
         except Exception:
             pass
+        if len(_token_cache) >= MAX_TOKEN_CACHE_ENTRIES:
+            _token_cache.popitem(last=False)
         _token_cache[token] = (u_id, now + ttl)
 
     # 1. Try fast local decode if symmetric HS256

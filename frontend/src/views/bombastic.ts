@@ -10,7 +10,7 @@ import {
   type OperativePresenceItem,
   type VerdictItem,
 } from '../api';
-import { escapeHtml } from '../utils';
+import { escapeHtml, safeUrl } from '../utils';
 import { showNotification } from './components/navbar';
 
 
@@ -534,8 +534,8 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
         if (isImage) {
           proofHtml = `
             <div class="flex items-center gap-1.5">
-              <a href="${escapeHtml(t.proof_url)}" target="_blank" rel="noopener noreferrer" class="group relative block w-7 h-7 rounded border border-white/10 overflow-hidden hover:scale-110 transition-transform">
-                <img src="${escapeHtml(t.proof_url)}" class="w-full h-full object-cover" alt="Proof" />
+              <a href="${escapeHtml(safeUrl(t.proof_url))}" target="_blank" rel="noopener noreferrer" class="group relative block w-7 h-7 rounded border border-white/10 overflow-hidden hover:scale-110 transition-transform">
+                <img src="${escapeHtml(safeUrl(t.proof_url))}" class="w-full h-full object-cover" alt="Proof" />
               </a>
               ${verifBadge}
             </div>
@@ -543,7 +543,7 @@ export function setupBombasticLogic(navigateFn: (route: string) => void) {
         } else {
           proofHtml = `
             <div class="flex items-center gap-1.5 max-w-[160px] truncate">
-              <a href="${escapeHtml(t.proof_url)}" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:underline truncate" title="${escapeHtml(t.proof_url)}">
+              <a href="${escapeHtml(safeUrl(t.proof_url))}" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:underline truncate" title="${escapeHtml(t.proof_url)}">
                 🔗 Link
               </a>
               ${verifBadge}

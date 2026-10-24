@@ -728,10 +728,8 @@ async def set_operative_password(req: SetPasswordRequest, request: Request):
         )
 
     # Derive client identifier for dual-layer rate-limiting (IP & Email)
+    # Strictly rely on request.client.host to prevent unverified proxy header spoofing
     client_ip = request.client.host if request.client else "unknown"
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        client_ip = forwarded.split(",")[0].strip()
 
     _check_password_rate_limits(client_ip, clean_email)
 

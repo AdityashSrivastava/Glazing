@@ -141,7 +141,7 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
--- 12. ROW LEVEL SECURITY (RLS) POLICIES
+-- 12. ROW LEVEL SECURITY (RLS) POLICIES & PRIVILEGE HARDENING
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
@@ -150,43 +150,126 @@ ALTER TABLE public.bounties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.focus_sessions ENABLE ROW LEVEL SECURITY;
 
--- USERS POLICIES (Read-only for public/anon; authoritative mutations via FastAPI backend service key)
+-- 12.1. USERS POLICIES & PRIVILEGES
+-- Defense-in-depth: Revoke broad UPDATE permissions from authenticated and anon roles
+REVOKE UPDATE ON public.users FROM authenticated, anon;
+-- Grant column-level UPDATE strictly for display_name and avatar_url
+GRANT UPDATE (display_name, avatar_url) ON public.users TO authenticated;
+
 DROP POLICY IF EXISTS "Allow read access to all users" ON public.users;
 CREATE POLICY "Allow read access to all users" ON public.users FOR SELECT USING (true);
 
 -- Allow authenticated users to update ONLY display_name and avatar_url on their own profile
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
-CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON public.users 
+    FOR UPDATE 
+    TO authenticated
+    USING ((SELECT auth.uid()) = id)
+    WITH CHECK ((SELECT auth.uid()) = id);
 
--- GOALS POLICIES (Defense-in-depth: classified goals readable only by owner)
+-- Trigger: Prohibit direct manipulation of total_lifetime_points and current_streak by non-service-role
+CREATE OR REPLACE FUNCTION public.protect_user_fields()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (auth.role() = 'authenticated') THEN
+        IF (NEW.total_lifetime_points IS DISTINCT FROM OLD.total_lifetime_points) THEN
+            RAISE EXCEPTION 'Modifying total_lifetime_points requires authoritative server clearance.';
+        END IF;
+        IF (NEW.current_streak IS DISTINCT FROM OLD.current_streak) THEN
+            RAISE EXCEPTION 'Modifying current_streak requires authoritative server clearance.';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_protect_user_fields ON public.users;
+CREATE TRIGGER trg_protect_user_fields
+    BEFORE UPDATE ON public.users
+    FOR EACH ROW EXECUTE PROCEDURE public.protect_user_fields();
+
+-- 12.2. GOALS POLICIES (Defense-in-depth: classified goals readable only by owner)
 DROP POLICY IF EXISTS "Allow read access to all goals" ON public.goals;
 DROP POLICY IF EXISTS "Allow read access to non-private goals or own goals" ON public.goals;
 CREATE POLICY "Allow read access to non-private goals or own goals" ON public.goals 
     FOR SELECT USING (is_private = false OR auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can insert own goals" ON public.goals;
-CREATE POLICY "Users can insert own goals" ON public.goals FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can insert own goals" ON public.goals 
+    FOR INSERT 
+    TO authenticated
+    WITH CHECK ((SELECT auth.uid()) = user_id);
 
 DROP POLICY IF EXISTS "Users can update own goals" ON public.goals;
-CREATE POLICY "Users can update own goals" ON public.goals FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own goals" ON public.goals 
+    FOR UPDATE 
+    TO authenticated
+    USING ((SELECT auth.uid()) = user_id)
+    WITH CHECK ((SELECT auth.uid()) = user_id);
 
 DROP POLICY IF EXISTS "Users can delete own goals" ON public.goals;
-CREATE POLICY "Users can delete own goals" ON public.goals FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own goals" ON public.goals 
+    FOR DELETE 
+    TO authenticated
+    USING ((SELECT auth.uid()) = user_id);
 
--- TASKS POLICIES (Defense-in-depth: classified tasks readable only by owner via direct client)
+-- 12.3. TASKS POLICIES & PRIVILEGES
+-- Defense-in-depth: Revoke broad UPDATE permissions from authenticated and anon roles
+REVOKE UPDATE ON public.tasks FROM authenticated, anon;
+-- Grant column-level UPDATE strictly for user-editable draft properties
+GRANT UPDATE (title, is_private, estimated_hours, goal_id) ON public.tasks TO authenticated;
+
 DROP POLICY IF EXISTS "Allow read access to all tasks" ON public.tasks;
 DROP POLICY IF EXISTS "Allow read access to non-private tasks or own tasks" ON public.tasks;
 CREATE POLICY "Allow read access to non-private tasks or own tasks" ON public.tasks 
     FOR SELECT USING (is_private = false OR auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can insert own tasks" ON public.tasks;
-CREATE POLICY "Users can insert own tasks" ON public.tasks FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can insert own tasks" ON public.tasks 
+    FOR INSERT 
+    TO authenticated
+    WITH CHECK (
+        (SELECT auth.uid()) = user_id 
+        AND points_earned = 0 
+        AND (status = 'PENDING' OR status IS NULL)
+    );
 
 DROP POLICY IF EXISTS "Users can update own tasks" ON public.tasks;
-CREATE POLICY "Users can update own tasks" ON public.tasks FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own tasks" ON public.tasks 
+    FOR UPDATE 
+    TO authenticated
+    USING ((SELECT auth.uid()) = user_id)
+    WITH CHECK ((SELECT auth.uid()) = user_id);
 
 DROP POLICY IF EXISTS "Users can delete own tasks" ON public.tasks;
-CREATE POLICY "Users can delete own tasks" ON public.tasks FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own tasks" ON public.tasks 
+    FOR DELETE 
+    TO authenticated
+    USING ((SELECT auth.uid()) = user_id);
+
+-- Trigger: Prohibit client-side manipulation of points_earned, actual_hours, or direct status completion
+CREATE OR REPLACE FUNCTION public.protect_task_points()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (auth.role() = 'authenticated') THEN
+        IF (NEW.points_earned IS DISTINCT FROM OLD.points_earned) THEN
+            RAISE EXCEPTION 'Modifying task points_earned requires authoritative server clearance.';
+        END IF;
+        IF (OLD.status = 'COMPLETED' AND NEW.status != 'COMPLETED') THEN
+            RAISE EXCEPTION 'Reverting completed tasks requires overseer clearance.';
+        END IF;
+        IF (NEW.status = 'COMPLETED' AND OLD.status != 'COMPLETED') THEN
+            RAISE EXCEPTION 'Completing tasks requires server gamification engine validation.';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_protect_task_points ON public.tasks;
+CREATE TRIGGER trg_protect_task_points
+    BEFORE UPDATE ON public.tasks
+    FOR EACH ROW EXECUTE PROCEDURE public.protect_task_points();
 
 -- BOUNTIES POLICIES
 DROP POLICY IF EXISTS "Allow read access to all bounties" ON public.bounties;
@@ -220,7 +303,12 @@ ON CONFLICT (id) DO UPDATE SET public = true;
 
 DROP POLICY IF EXISTS "Authenticated users can upload proofs" ON storage.objects;
 CREATE POLICY "Authenticated users can upload proofs" ON storage.objects
-    FOR INSERT TO authenticated WITH CHECK (bucket_id = 'proof_uploads');
+    FOR INSERT TO authenticated 
+    WITH CHECK (
+        bucket_id = 'proof_uploads' 
+        AND (storage.foldername(name))[1] = (SELECT auth.uid())::TEXT
+        AND LOWER(storage.extension(name)) IN ('png', 'jpg', 'jpeg', 'webp')
+    );
 
 DROP POLICY IF EXISTS "Public can view proofs" ON storage.objects;
 CREATE POLICY "Public can view proofs" ON storage.objects
@@ -307,14 +395,20 @@ DROP POLICY IF EXISTS "Allow read presence" ON public.operative_presence;
 CREATE POLICY "Allow read presence" ON public.operative_presence
     FOR SELECT USING (true);
 
--- Verdicts RLS: All users can read verdicts (for public squad shaming), targets can update acknowledged
+-- Verdicts RLS: All users can read verdicts (for public squad shaming), targets can ONLY update acknowledged
+REVOKE UPDATE ON public.verdicts FROM authenticated, anon;
+GRANT UPDATE (acknowledged) ON public.verdicts TO authenticated;
+
 DROP POLICY IF EXISTS "Allow read verdicts" ON public.verdicts;
 CREATE POLICY "Allow read verdicts" ON public.verdicts
     FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Allow user acknowledge verdict" ON public.verdicts;
 CREATE POLICY "Allow user acknowledge verdict" ON public.verdicts
-    FOR UPDATE USING (auth.uid() = target_user_id);
+    FOR UPDATE 
+    TO authenticated
+    USING ((SELECT auth.uid()) = target_user_id)
+    WITH CHECK ((SELECT auth.uid()) = target_user_id);
 
 
 
