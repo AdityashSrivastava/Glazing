@@ -102,6 +102,55 @@ To eliminate cold-start delays on free-tier infrastructure:
 
 ---
 
+## 🛡️ Security, Safety & Platform Integrity Architecture
+
+Glazing is engineered with a strict **Zero-Trust Client Philosophy** and multi-layered defense-in-depth posture across the database, server infrastructure, and client interface. Competitive gamification integrity is protected against client tampering, arbitrary point escalation, and credential abuse.
+
+```
+                  ┌──────────────────────────────────────────────┐
+                  │          ZERO-TRUST DEFENSE STACK            │
+                  └──────────────────────┬───────────────────────┘
+                                         │
+        ┌────────────────────────────────┼────────────────────────────────┐
+        ▼                                ▼                                ▼
+┌───────────────────────┐    ┌───────────────────────┐    ┌───────────────────────┐
+│   DATABASE SHIELD     │    │    API & TRANSPORT    │    │    CLIENT FRONTIER    │
+│ • Column Grants Lock  │    │ • Sanitized Envelopes │    │ • Safe URL Protocols  │
+│ • RLS + WITH CHECK    │    │ • Whitelisted CORS    │    │ • Global HTML Escaping│
+│ • Tamper Triggers     │    │ • Socket-Based Limits │    │ • Route Clearance     │
+│ • Sandboxed Buckets   │    │ • Bounded LRU Cache   │    │ • Ephemeral Storage   │
+└───────────────────────┘    └───────────────────────┘    └───────────────────────┘
+```
+
+### 1. Database Access Control & Column Privilege Locking
+- **`public.users` Column Lock:** Direct `UPDATE` on sensitive attributes (`total_lifetime_points`, `current_streak`) is revoked from `authenticated` and `anon` roles. Operatives can only update their `display_name` and `avatar_url`.
+- **`public.tasks` State & Point Shield:** Direct client mutation of `points_earned`, `actual_hours`, and `status` is revoked. Clients can only edit draft metadata (`title`, `is_private`, `estimated_hours`, `goal_id`).
+- **`public.verdicts` Immutability:** Target operatives possess update privileges exclusively for the `acknowledged` boolean column. Disciplinary verdicts, docked points, and sanctions cannot be overwritten, downgraded, or deleted by offenders.
+- **Strict Ownership Invariants (`WITH CHECK`):** All `INSERT` and `UPDATE` policies across `tasks`, `goals`, `verdicts`, and `operative_presence` enforce `WITH CHECK ((SELECT auth.uid()) = owner_id)` to prevent identity spoofing or resource reassignments.
+
+### 2. PostgreSQL Tamper-Proof Triggers
+- **`protect_user_fields()` Trigger:** Intercepts updates to `public.users`. If any non-service-role user attempts to alter `total_lifetime_points` or `current_streak`, the transaction is aborted with a PostgreSQL exception.
+- **`protect_task_points()` Trigger:** Intercepts mutations on `public.tasks`. Rejects any non-service-role attempt to modify `points_earned`, mark tasks as `COMPLETED` without backend heuristic verification, or revert completed tasks.
+
+### 3. Client-Side Sanitization & Stored XSS Neutralization
+- **Strict URL Scheme Validation (`safeUrl`):** All user-provided proof URLs and screenshot links rendered in activity feeds or the Overseer Cockpit (`#/bombastic`) are filtered through `safeUrl()`, discarding `javascript:`, `data:text/html`, or pseudo-protocols.
+- **Global Context Escaping (`escapeHtml`):** Dynamic user strings (titles, reasons, operative names) are systematically escaped before DOM injection across tooltips, toasts, cards, and modal dialogs.
+
+### 4. Storage Bucket Sandboxing (`proof_uploads`)
+- **Folder-Level User Scoping:** Upload policies restrict file paths to the operative's UID directory: `(storage.foldername(name))[1] = (SELECT auth.uid())::TEXT`.
+- **Binary Signature & Extension Whitelisting:** Client uploads require image extensions (`.png`, `.jpg`, `.jpeg`, `.webp`), while the FastAPI `/api/tasks/upload-proof` endpoint validates magic byte signatures (`\x89PNG`, `\xff\xd8\xff`, `RIFF...WEBP`) to block polyglot and executable uploads.
+
+### 5. Backend Infrastructure & API Hygiene
+- **Sanitized Error Envelopes:** Global 500 exception handlers suppress raw stack traces, SQL errors, and filesystem paths, serving clean `{"detail": "An internal server error occurred. Telemetry logged."}` responses.
+- **Origin-Enforced CORS:** Eliminates wildcard reflection with credentials (`Access-Control-Allow-Credentials: true`). Only verified frontends (`localhost`, `127.0.0.1`, `glazing-lac.vercel.app`) receive valid CORS headers.
+- **Socket-Based Rate Limiting:** Disables raw trust in spoofable `X-Forwarded-For` headers, deriving client identities directly from verified socket hosts (`request.client.host`) to prevent brute-force rotation.
+- **Bounded LRU Token Cache:** Replaced unbounded authentication dictionaries with an LRU `OrderedDict` (`MAX_TOKEN_CACHE_ENTRIES = 2000`) to guarantee resilience against memory exhaustion DoS attacks.
+
+### 6. Security Patch & Migration Script
+A standalone, idempotent migration script is maintained in [`project_files/security_patch.sql`](project_files/security_patch.sql) to apply all SQL privileges, RLS policies, and triggers with zero downtime.
+
+---
+
 ## 🛠️ Tech Stack
 
 | Layer | Technologies |
