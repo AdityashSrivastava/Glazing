@@ -1,6 +1,7 @@
 import { apiFetch } from '../api';
 import { supabase } from '../supabase';
-import { renderNavbar, setupNavbarLogic } from './components/navbar';
+import { renderNavbar, setupNavbarLogic, showNotification } from './components/navbar';
+import { isMidtermFreezeActive, openMidtermModal } from './components/midterm_modal';
 import { escapeHtml } from '../utils';
 
 export function renderBounties(): string {
@@ -191,6 +192,11 @@ export async function setupBountiesLogic(navigateFn: (route: string) => void) {
   if (form) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (isMidtermFreezeActive()) {
+        showNotification("Operations Suspended: Bounty staking paused until 06 Nov 2026 for Midterms.", "error");
+        openMidtermModal();
+        return;
+      }
       const btn = document.getElementById('submit-bounty-btn') as HTMLButtonElement;
       btn.disabled = true;
       btn.textContent = 'LOCKING CONTRACT...';

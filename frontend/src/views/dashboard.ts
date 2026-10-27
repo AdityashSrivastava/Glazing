@@ -4,6 +4,7 @@ import { renderCompleteModal, openCompleteTaskModal, setupCompleteModalLogic } f
 import { renderWeeklyWinnerModal, setupWeeklyWinnerModalLogic, openWeeklyWinnerModal } from './components/weekly_winner_modal';
 import { renderGymModal, setupGymModalLogic, openGymModal } from './components/gym_modal';
 import { renderNavbar, setupNavbarLogic, showNotification } from './components/navbar';
+import { isMidtermFreezeActive, openMidtermModal } from './components/midterm_modal';
 import { escapeHtml, safeUrl } from '../utils';
 
 interface Task {
@@ -664,6 +665,11 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
   const gymBtn = document.getElementById('gym-checkin-btn') as HTMLButtonElement;
   if (gymBtn) {
     gymBtn.onclick = async () => {
+      if (isMidtermFreezeActive()) {
+        showNotification("Operations Suspended: Gym checkpoints deferred until 06 Nov 2026 for Midterms.", "error");
+        openMidtermModal();
+        return;
+      }
       gymBtn.disabled = true;
       gymBtn.textContent = 'Registering...';
       try {
@@ -700,6 +706,11 @@ export function setupDashboardLogic(navigateFn: (route: string) => void) {
   if (quickBountyForm) {
     quickBountyForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (isMidtermFreezeActive()) {
+        showNotification("Operations Suspended: Bounty staking is paused until 06 Nov 2026 for Midterms.", "error");
+        openMidtermModal();
+        return;
+      }
       const submitBtn = document.getElementById('submit-quick-bounty-btn') as HTMLButtonElement;
       submitBtn.disabled = true;
       submitBtn.textContent = 'LOCKING ESCROW...';
@@ -1377,6 +1388,11 @@ function setupCardActionListeners(container: HTMLDivElement) {
   const completeBtns = container.querySelectorAll('[data-action="complete"]');
   completeBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
+      if (isMidtermFreezeActive()) {
+        showNotification("Operations Suspended: Task completion paused until 06 Nov 2026 for Midterms.", "error");
+        openMidtermModal();
+        return;
+      }
       const target = e.currentTarget as HTMLButtonElement;
       const taskId = target.getAttribute('data-task-id') || '';
       const taskTitle = decodeURIComponent(target.getAttribute('data-task-title') || '');

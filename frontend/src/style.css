@@ -444,4 +444,34 @@ select:-webkit-autofill {
   50% { transform: translateY(-7px) scale(1.04); }
 }
 
+/* Midterm Standby Atmospheric Energy Aura & Physics */
+.midterm-ambient-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, rgba(217, 119, 6, 0.15) 50%, transparent 70%);
+  filter: blur(18px);
+  animation: midtermGlowPulse 2.8s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes midtermGlowPulse {
+  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.95; }
+}
+
+.midterm-icon-craft {
+  display: inline-flex;
+  animation: midtermHover 3.2s ease-in-out infinite;
+  filter: drop-shadow(0 4px 14px rgba(245, 158, 11, 0.35));
+}
+@keyframes midtermHover {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.02); }
+}
+
+
 

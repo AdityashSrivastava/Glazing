@@ -1,6 +1,7 @@
 import { supabase } from '../../supabase';
 import { apiFetch, updateMyPassword } from '../../api';
 import { renderCreateTaskModal } from './modal';
+import { isMidtermFreezeActive, openMidtermModal } from './midterm_modal';
 import { escapeHtml } from '../../utils';
 
 export function renderChangePasswordModal(): string {
@@ -357,6 +358,11 @@ export function setupNavbarLogic(navigateFn: (route: string) => void) {
 
   if (openModalBtn && modal) {
     openModalBtn.addEventListener('click', async () => {
+      if (isMidtermFreezeActive()) {
+        showNotification("Operations Suspended: Glazing has stopped validating actions until 06 Nov 2026 for Midterms.", "error");
+        openMidtermModal();
+        return;
+      }
       modal.classList.remove('hidden');
       setCreateDigitalTime(1, 0);
       await populateGoalDropdown();
@@ -469,6 +475,11 @@ export function setupNavbarLogic(navigateFn: (route: string) => void) {
   if (createTaskForm) {
     createTaskForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (isMidtermFreezeActive()) {
+        showNotification("Operations Suspended: Task creation paused until 06 Nov 2026 for Midterms.", "error");
+        openMidtermModal();
+        return;
+      }
       const submitBtn = document.getElementById('submit-task-btn') as HTMLButtonElement;
       submitBtn.disabled = true;
       submitBtn.textContent = 'DEPLOYING...';

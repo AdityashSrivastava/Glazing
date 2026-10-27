@@ -11,6 +11,7 @@ import { renderTimer, setupTimerLogic } from './views/timer';
 import { renderLanding, setupLandingLogic } from './views/landing';
 import { renderBombastic, setupBombasticLogic } from './views/bombastic';
 import { renderVerdictModal, checkAndShowPendingVerdicts } from './views/components/verdict_modal';
+import { renderMidtermBanner, renderMidtermModal, setupMidtermModalLogic } from './views/components/midterm_modal';
 
 // Warm up backend instance immediately in the background
 warmupBackend();
@@ -119,34 +120,48 @@ async function renderApp() {
     // Send backend heartbeat telemetry
     sendHeartbeat(currentRoute);
 
+    let viewHtml = '';
     if (currentRoute === 'bombastic') {
-      app.innerHTML = renderBombastic() + renderVerdictModal();
+      viewHtml = renderBombastic();
+    } else if (currentRoute === 'leaderboard') {
+      viewHtml = renderLeaderboard();
+    } else if (currentRoute === 'goals') {
+      viewHtml = renderGoals();
+    } else if (currentRoute === 'timer') {
+      viewHtml = renderTimer();
+    } else if (currentRoute === 'analytics') {
+      viewHtml = renderAnalytics();
+    } else if (currentRoute === 'bounties') {
+      viewHtml = renderBounties();
+    } else {
+      viewHtml = renderDashboard();
+    }
+
+    app.innerHTML = renderMidtermBanner() + viewHtml + renderVerdictModal() + renderMidtermModal();
+
+    if (currentRoute === 'bombastic') {
       setupBombasticLogic(navigate);
     } else if (currentRoute === 'leaderboard') {
-      app.innerHTML = renderLeaderboard() + renderVerdictModal();
       setupLeaderboardLogic(navigate);
       checkAndShowPendingVerdicts();
     } else if (currentRoute === 'goals') {
-      app.innerHTML = renderGoals() + renderVerdictModal();
       setupGoalsLogic(navigate);
       checkAndShowPendingVerdicts();
     } else if (currentRoute === 'timer') {
-      app.innerHTML = renderTimer() + renderVerdictModal();
       setupTimerLogic(navigate);
       checkAndShowPendingVerdicts();
     } else if (currentRoute === 'analytics') {
-      app.innerHTML = renderAnalytics() + renderVerdictModal();
       setupAnalyticsLogic(navigate);
       checkAndShowPendingVerdicts();
     } else if (currentRoute === 'bounties') {
-      app.innerHTML = renderBounties() + renderVerdictModal();
       setupBountiesLogic(navigate);
       checkAndShowPendingVerdicts();
     } else {
-      app.innerHTML = renderDashboard() + renderVerdictModal();
       setupDashboardLogic(navigate);
       checkAndShowPendingVerdicts();
     }
+
+    setupMidtermModalLogic();
   } else {
     // Unauthenticated user
     if (currentRoute !== 'login') {

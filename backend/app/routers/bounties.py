@@ -7,6 +7,7 @@ from app.auth import get_current_user
 from app.database import db
 from app.models import BountyBase
 from app.points import atomic_deduct_points, atomic_add_points
+from app.midterm import assert_midterm_operations_allowed
 
 router = APIRouter(prefix="/api/bounties", tags=["Bounties"])
 
@@ -117,6 +118,7 @@ async def get_bounties(current_user_id: str = Depends(get_current_user)):
 
 @router.post("", response_model=BountyBase)
 async def create_bounty(bounty_in: BountyCreate, current_user_id: str = Depends(get_current_user)):
+    assert_midterm_operations_allowed()
     if bounty_in.points_at_stake < 10:
         raise HTTPException(status_code=400, detail="Minimum bounty is 10 points.")
         

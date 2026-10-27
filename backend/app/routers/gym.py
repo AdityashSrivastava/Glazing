@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 from app.auth import get_current_user
 from app.database import db
 from app.points import atomic_add_points
+from app.midterm import assert_midterm_operations_allowed
 
 router = APIRouter(prefix="/api/gym", tags=["Gym"])
 
@@ -84,6 +85,7 @@ async def get_gym_status(current_user_id: str = Depends(get_current_user)):
 
 @router.post("/checkin", response_model=GymStatusResponse)
 async def checkin_gym(current_user_id: str = Depends(get_current_user)):
+    assert_midterm_operations_allowed()
     now_ist = datetime.now(IST)
     today_str = now_ist.date().isoformat()
 

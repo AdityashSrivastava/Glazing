@@ -98,3 +98,14 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.get("/api/health")
 def health_check():
     return {"status": "online", "message": "Glazing API is running."}
+
+@app.get("/api/midterm-status")
+def midterm_status():
+    from app.midterm import is_midterm_freeze_active, get_midterm_remaining_seconds, MIDTERM_RESUME_DATE
+    return {
+        "active": is_midterm_freeze_active(),
+        "resume_date": MIDTERM_RESUME_DATE.isoformat(),
+        "seconds_remaining": get_midterm_remaining_seconds(),
+        "message": "We're sorry midterms are approaching and because of that glazing has stopped validating any action whatsoever until 6 november"
+    }
+

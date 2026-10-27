@@ -11,6 +11,7 @@ from app.auth import get_current_user
 from app.database import db
 from app.routers.timer import get_all_tasks_focus_durations, get_tasks_focus_durations
 from app.points import atomic_add_points, atomic_deduct_points
+from app.midterm import assert_midterm_operations_allowed
 
 router = APIRouter(prefix="/api/tasks", tags=["Tasks"])
 
@@ -149,6 +150,7 @@ def _is_valid_proof_signature(content: bytes, ext: str) -> bool:
 @router.post("/upload-proof")
 async def upload_task_proof(file: UploadFile = File(...), current_user_id: str = Depends(get_current_user)):
     """Uploads a verified screenshot proof asset to the proof_uploads Supabase Storage bucket."""
+    assert_midterm_operations_allowed()
     if not file or not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
 
@@ -402,6 +404,7 @@ async def get_task_telemetry(current_user_id: str = Depends(get_current_user)):
 
 @router.post("", response_model=TaskBase)
 async def create_task(task_in: TaskCreate, current_user_id: str = Depends(get_current_user)):
+    assert_midterm_operations_allowed()
     clean_title = task_in.title.strip()
     if not clean_title:
         raise HTTPException(status_code=400, detail="Task title cannot be empty")
@@ -453,6 +456,7 @@ async def create_task(task_in: TaskCreate, current_user_id: str = Depends(get_cu
 @router.patch("/{task_id}/complete", response_model=TaskBase)
 async def complete_task(task_id: UUID, payload: TaskComplete, current_user_id: str = Depends(get_current_user)):
     """The Gamification Engine - strictly enforces gamification math rules in IST."""
+    assert_midterm_operations_allowed()
     if payload.actual_hours > 12 or payload.actual_hours <= 0:
         raise HTTPException(status_code=400, detail="Invalid actual hours. Must be greater than 0 and up to 12 hours.")
 
